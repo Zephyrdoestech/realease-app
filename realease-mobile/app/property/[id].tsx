@@ -19,7 +19,7 @@ import {
   MessageCircle,
   Calendar,
 } from 'lucide-react-native';
-import { mockProperties } from '@/constants/data';
+import { mockProperties } from '../../constants/data';
 import { VerifiedBadge } from '../../components/VerifiedBadge';
 import { Button } from '../../components/Button';
 
@@ -224,7 +224,7 @@ export default function PropertyDetailsScreen() {
           <View className="flex-1">
             <Button
               title="Quick Reserve"
-              onPress={() => console.log('Reserve property')}
+              onPress={() => router.push(`/checkout/${property.id}`)}
               variant="primary"
               icon={<Calendar size={20} color="#FFFFFF" />}
             />
