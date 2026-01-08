@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, ChevronDown, MapPin } from 'lucide-react-native';
-import { PropertyCard } from '../../components/PropertyCard';
-import { FilterChip } from '../../components/FilterChip';
+import { PropertyCard } from '../components/PropertyCard';
+import { FilterChip } from '../components/FilterChip';
 import { mockProperties } from '@/constants/data';
 
 export default function HomeScreen() {

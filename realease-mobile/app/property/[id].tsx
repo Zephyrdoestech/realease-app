@@ -20,8 +20,8 @@ import {
   Calendar,
 } from 'lucide-react-native';
 import { mockProperties } from '../../constants/data';
-import { VerifiedBadge } from '../../components/VerifiedBadge';
-import { Button } from '../../components/Button';
+import { VerifiedBadge } from '../components/VerifiedBadge';
+import { Button } from '../components/Button';
 
 export default function PropertyDetailsScreen() {
   const { id } = useLocalSearchParams();
