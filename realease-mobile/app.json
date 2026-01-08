@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "realease-mobile",
+    "scheme": "realease", 
     "slug": "realease-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
