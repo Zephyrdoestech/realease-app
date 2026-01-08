@@ -1,3 +1,5 @@
+// constants/data.ts
+
 export interface Property {
   id: string;
   title: string;
@@ -9,55 +11,79 @@ export interface Property {
   isVerified: boolean;
   agentName: string;
   agentTrustScore: number;
+  latitude: number;
+  longitude: number;
 }
 
 export const mockProperties: Property[] = [
   {
     id: '1',
-    title: 'Avida Towers Riala - 1BR',
+    title: 'Avida Towers Cebu',
     price: 4500000,
-    location: 'IT Park, Cebu City',
-    imageUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80',
-    bedrooms: 1,
-    bathrooms: 1,
+    location: 'Cebu Business Park, Cebu City',
+    imageUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&h=600&fit=crop',
+    bedrooms: 2,
+    bathrooms: 2,
     isVerified: true,
     agentName: 'Maria Santos',
-    agentTrustScore: 9.8,
+    agentTrustScore: 9.2,
+    latitude: 10.3181,
+    longitude: 123.9059, // Near Cebu Business Park
   },
   {
     id: '2',
-    title: 'Modern House & Lot in Talisay',
-    price: 8500000,
+    title: 'Modern House in Talisay',
+    price: 8750000,
     location: 'Talisay City, Cebu',
-    imageUrl: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80',
-    bedrooms: 3,
-    bathrooms: 2,
-    isVerified: true,
-    agentName: 'Juan Dela Cruz',
-    agentTrustScore: 9.5,
-  },
-  {
-    id: '3',
-    title: 'Studio Unit near Ayala',
-    price: 3200000,
-    location: 'Cebu Business Park',
-    imageUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80',
-    bedrooms: 0,
-    bathrooms: 1,
-    isVerified: false,
-    agentName: 'New Agent',
-    agentTrustScore: 5.0,
-  },
-  {
-    id: '4',
-    title: 'Family Home in Banilad',
-    price: 12000000,
-    location: 'Banilad, Cebu City',
-    imageUrl: 'https://images.unsplash.com/photo-1600596542815-22b891d59418?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&h=600&fit=crop',
     bedrooms: 4,
     bathrooms: 3,
     isVerified: true,
-    agentName: 'Sarah Go',
-    agentTrustScore: 9.9,
+    agentName: 'Juan dela Cruz',
+    agentTrustScore: 8.8,
+    latitude: 10.2449,
+    longitude: 123.8492, // Talisay City
+  },
+  {
+    id: '3',
+    title: 'Ayala Land Premier Condo',
+    price: 12500000,
+    location: 'Cebu IT Park, Cebu City',
+    imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
+    bedrooms: 3,
+    bathrooms: 2,
+    isVerified: true,
+    agentName: 'Sofia Reyes',
+    agentTrustScore: 9.5,
+    latitude: 10.3269,
+    longitude: 123.9066, // IT Park area
+  },
+  {
+    id: '4',
+    title: 'Townhouse in Lahug',
+    price: 6200000,
+    location: 'Lahug, Cebu City',
+    imageUrl: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop',
+    bedrooms: 3,
+    bathrooms: 2,
+    isVerified: false,
+    agentName: 'Pedro Garcia',
+    agentTrustScore: 6.5,
+    latitude: 10.3308,
+    longitude: 123.8987, // Lahug area
+  },
+  {
+    id: '5',
+    title: 'Luxury Condo near SM Seaside',
+    price: 15000000,
+    location: 'South Road Properties, Cebu City',
+    imageUrl: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop',
+    bedrooms: 5,
+    bathrooms: 4,
+    isVerified: false,
+    agentName: 'Carmen Lopez',
+    agentTrustScore: 7.1,
+    latitude: 10.2776,
+    longitude: 123.8819, // Near SM Seaside
   },
 ];
