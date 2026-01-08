@@ -1,7 +1,7 @@
 // app/_layout.tsx
-import "../global.css";
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import '../global.css';
 
 export default function RootLayout() {
   return (
@@ -12,7 +12,20 @@ export default function RootLayout() {
           headerShown: false,
         }}
       >
+        {/* Main tabs */}
         <Stack.Screen name="(tabs)" />
+        
+        {/* Property details */}
+        <Stack.Screen name="property/[id]" />
+        
+        {/* Checkout modal */}
+        <Stack.Screen 
+          name="checkout/[id]" 
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
       </Stack>
     </>
   );

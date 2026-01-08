@@ -19,15 +19,14 @@ import {
   MessageCircle,
   Calendar,
 } from 'lucide-react-native';
-import { mockProperties } from '../../constants/data';
-import { VerifiedBadge } from '../components/VerifiedBadge';
-import { Button } from '../components/Button';
+import { mockProperties } from '@/constants/data';
+import { VerifiedBadge } from '@/components/VerifiedBadge';
+import { Button } from '@/components/Button';
 
 export default function PropertyDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   
-  // Find the property by ID
   const property = mockProperties.find((p) => p.id === id);
 
   if (!property) {
@@ -44,12 +43,11 @@ export default function PropertyDetailsScreen() {
     return `₱${price.toLocaleString('en-PH')}`;
   };
 
-  // Mock PRC License (in real app, this would come from property data)
   const prcLicense = property.isVerified ? 'PRC-00' + property.id + '2345' : 'Not Verified';
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      {/* Header with Back Button */}
+      {/* Back Button */}
       <View className="absolute top-12 left-4 z-10">
         <TouchableOpacity
           onPress={() => router.back()}
@@ -61,32 +59,28 @@ export default function PropertyDetailsScreen() {
       </View>
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Full-width Image */}
+        {/* Hero Image */}
         <View className="relative">
           <Image
             source={{ uri: property.imageUrl }}
             className="w-full h-96"
             resizeMode="cover"
           />
-          {/* Verified Badge on Image */}
           <View className="absolute top-4 right-4">
             <VerifiedBadge isVerified={property.isVerified} />
           </View>
         </View>
 
-        {/* Content Container */}
+        {/* Content */}
         <View className="px-6 pt-6 pb-32">
-          {/* Title */}
           <Text className="text-3xl font-bold text-gray-900 mb-2">
             {property.title}
           </Text>
 
-          {/* Price */}
           <Text className="text-4xl font-bold text-teal-700 mb-4">
             {formatPrice(property.price)}
           </Text>
 
-          {/* Location */}
           <View className="flex-row items-center mb-6">
             <MapPin size={20} color="#6B7280" />
             <Text className="text-base text-gray-600 ml-2">
@@ -94,7 +88,7 @@ export default function PropertyDetailsScreen() {
             </Text>
           </View>
 
-          {/* Property Details */}
+          {/* Property Stats */}
           <View className="flex-row items-center mb-8 gap-6">
             <View className="flex-row items-center">
               <Bed size={24} color="#0F766E" />
@@ -181,7 +175,7 @@ export default function PropertyDetailsScreen() {
             </View>
           </View>
 
-          {/* Description Section */}
+          {/* Description */}
           <View className="mb-6">
             <Text className="text-xl font-bold text-gray-900 mb-3">
               Description
@@ -191,7 +185,7 @@ export default function PropertyDetailsScreen() {
             </Text>
           </View>
 
-          {/* Amenities Section */}
+          {/* Amenities */}
           <View>
             <Text className="text-xl font-bold text-gray-900 mb-3">
               Amenities
@@ -210,7 +204,7 @@ export default function PropertyDetailsScreen() {
         </View>
       </ScrollView>
 
-      {/* Fixed Action Bar at Bottom */}
+      {/* FIXED ACTION BAR - CRITICAL FIX */}
       <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4">
         <View className="flex-row gap-3">
           <View className="flex-1">
@@ -224,7 +218,7 @@ export default function PropertyDetailsScreen() {
           <View className="flex-1">
             <Button
               title="Quick Reserve"
-              onPress={() => router.push(`/checkout/${property.id}`)}
+              onPress={() => router.push('/checkout/' + property.id)}
               variant="primary"
               icon={<Calendar size={20} color="#FFFFFF" />}
             />

@@ -17,21 +17,16 @@ import {
   Lock,
   CreditCard,
   CheckCircle,
-  Clock,
-  QrCode,
 } from 'lucide-react-native';
-import { mockProperties } from '../../constants/data';
-import { Button } from '../components/Button';
+import { mockProperties } from '@/constants/data';
+import { Button } from '@/components/Button';
 
-type PaymentMethod = 'gcash' | 'maya' | 'credit';
-type PaymentStep = 'checkout' | 'loading' | 'qr' | 'success';
+type PaymentStep = 'checkout' | 'processing' | 'success';
 
 export default function CheckoutScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>('gcash');
   const [paymentStep, setPaymentStep] = useState<PaymentStep>('checkout');
-  const [countdown, setCountdown] = useState(3);
 
   const property = mockProperties.find((p) => p.id === id);
 
@@ -53,81 +48,18 @@ export default function CheckoutScreen() {
   const serviceFee = 150;
   const total = reservationFee + serviceFee;
 
-  const paymentMethods = [
-    { id: 'gcash', name: 'GCash', icon: '💰' },
-    { id: 'maya', name: 'Maya (PayMaya)', icon: '💳' },
-    { id: 'credit', name: 'Credit Card', icon: '💳' },
-  ];
-
   const handlePayment = () => {
-    setPaymentStep('loading');
+    setPaymentStep('processing');
 
-    // Step 1: Loading (2 seconds)
+    // FAKE PAYMENT: Auto-transition after 3 seconds
     setTimeout(() => {
-      setPaymentStep('qr');
-      setCountdown(3);
-    }, 2000);
-  };
-
-  // QR Code countdown timer
-  useEffect(() => {
-    if (paymentStep === 'qr' && countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else if (paymentStep === 'qr' && countdown === 0) {
       setPaymentStep('success');
-    }
-  }, [paymentStep, countdown]);
+    }, 3000);
+  };
 
   const handleReturnHome = () => {
     router.push('/(tabs)');
   };
-
-  const PaymentMethodOption = ({
-    method,
-  }: {
-    method: { id: PaymentMethod; name: string; icon: string };
-  }) => (
-    <TouchableOpacity
-      onPress={() => setSelectedPayment(method.id)}
-      activeOpacity={0.7}
-      className={`
-        flex-row items-center p-4 rounded-xl mb-3
-        ${
-          selectedPayment === method.id
-            ? 'bg-teal-50 border-2 border-teal-700'
-            : 'bg-white border border-gray-300'
-        }
-      `}
-    >
-      <View className="flex-row items-center flex-1">
-        <Text className="text-2xl mr-3">{method.icon}</Text>
-        <Text
-          className={`text-base font-semibold ${
-            selectedPayment === method.id ? 'text-teal-700' : 'text-gray-900'
-          }`}
-        >
-          {method.name}
-        </Text>
-      </View>
-      <View
-        className={`
-        w-6 h-6 rounded-full border-2 items-center justify-center
-        ${
-          selectedPayment === method.id
-            ? 'border-teal-700 bg-teal-700'
-            : 'border-gray-300'
-        }
-      `}
-      >
-        {selectedPayment === method.id && (
-          <View className="w-3 h-3 rounded-full bg-white" />
-        )}
-      </View>
-    </TouchableOpacity>
-  );
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100" edges={['top']}>
@@ -154,7 +86,7 @@ export default function CheckoutScreen() {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-6 py-6">
-          {/* Property Summary Card */}
+          {/* Property Summary */}
           <View className="bg-white rounded-2xl overflow-hidden mb-6 shadow-sm">
             <View className="flex-row">
               <Image
@@ -189,7 +121,7 @@ export default function CheckoutScreen() {
             </View>
           </View>
 
-          {/* Cost Breakdown */}
+          {/* Payment Summary */}
           <View className="bg-white rounded-2xl p-6 mb-6">
             <Text className="text-lg font-bold text-gray-900 mb-4">
               Payment Summary
@@ -222,19 +154,6 @@ export default function CheckoutScreen() {
             </View>
           </View>
 
-          {/* Payment Methods */}
-          <View className="mb-6">
-            <Text className="text-lg font-bold text-gray-900 mb-4">
-              Payment Method
-            </Text>
-            {paymentMethods.map((method) => (
-              <PaymentMethodOption
-                key={method.id}
-                method={method as { id: PaymentMethod; name: string; icon: string }}
-              />
-            ))}
-          </View>
-
           {/* Security Notice */}
           <View className="bg-gray-50 rounded-xl p-4 mb-6 flex-row items-start">
             <Shield size={20} color="#6B7280" />
@@ -256,7 +175,7 @@ export default function CheckoutScreen() {
         </View>
       </ScrollView>
 
-      {/* Payment Modal */}
+      {/* FAKE PAYMENT MODAL */}
       <Modal
         visible={paymentStep !== 'checkout'}
         transparent
@@ -264,54 +183,17 @@ export default function CheckoutScreen() {
       >
         <View className="flex-1 bg-black/50 justify-center items-center px-6">
           <View className="bg-white rounded-3xl p-8 w-full max-w-sm">
-            {/* Loading State */}
-            {paymentStep === 'loading' && (
+            
+            {/* Processing State */}
+            {paymentStep === 'processing' && (
               <View className="items-center">
                 <ActivityIndicator size="large" color="#0F766E" />
                 <Text className="text-lg font-bold text-gray-900 mt-6 mb-2">
-                  Connecting to GCash...
+                  Processing GCash...
                 </Text>
                 <Text className="text-sm text-gray-600 text-center">
-                  Please wait while we set up your secure payment
+                  Please wait while we process your payment securely
                 </Text>
-              </View>
-            )}
-
-            {/* QR Code State */}
-            {paymentStep === 'qr' && (
-              <View className="items-center">
-                <View className="bg-teal-100 rounded-full p-4 mb-4">
-                  <QrCode size={48} color="#0F766E" />
-                </View>
-                <Text className="text-lg font-bold text-gray-900 mb-2">
-                  Scan QR Code
-                </Text>
-                <Text className="text-sm text-gray-600 text-center mb-6">
-                  Open your GCash app and scan this code
-                </Text>
-
-                {/* Mock QR Code */}
-                <View className="bg-gray-100 w-48 h-48 rounded-2xl items-center justify-center mb-6">
-                  <QrCode size={120} color="#1F2937" />
-                </View>
-
-                {/* Amount Display */}
-                <View className="bg-teal-50 rounded-xl p-4 w-full mb-4">
-                  <Text className="text-center text-sm text-gray-600 mb-1">
-                    Amount to Pay
-                  </Text>
-                  <Text className="text-center text-2xl font-bold text-teal-700">
-                    {formatPrice(total)}
-                  </Text>
-                </View>
-
-                {/* Timer */}
-                <View className="flex-row items-center">
-                  <Clock size={16} color="#6B7280" />
-                  <Text className="text-sm text-gray-600 ml-2">
-                    Auto-confirming in {countdown}s...
-                  </Text>
-                </View>
               </View>
             )}
 
