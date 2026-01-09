@@ -12,6 +12,10 @@ export default function RootLayout() {
           headerShown: false,
         }}
       >
+        {/* Login screen (first screen) */}
+        <Stack.Screen name="index" />
+        <Stack.Screen name="login" />
+        
         {/* Main tabs */}
         <Stack.Screen name="(tabs)" />
         
