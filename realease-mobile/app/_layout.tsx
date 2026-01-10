@@ -22,6 +22,9 @@ export default function RootLayout() {
         {/* Property details */}
         <Stack.Screen name="property/[id]" />
         
+        {/* Chat screen */}
+        <Stack.Screen name="chat/[id]" />
+        
         {/* Checkout modal */}
         <Stack.Screen 
           name="checkout/[id]" 

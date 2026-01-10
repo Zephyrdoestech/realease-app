@@ -3,7 +3,11 @@ module.exports = function (api) {
   return {
     presets: [
       ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-      "nativewind/babel", // <--- It belongs HERE in v4
+      "nativewind/babel",
+    ],
+    plugins: [
+      // This is the CRITICAL LINE that fixes 'makeMutable' errors
+      "react-native-reanimated/plugin", 
     ],
   };
 };

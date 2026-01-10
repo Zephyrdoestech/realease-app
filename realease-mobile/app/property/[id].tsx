@@ -210,7 +210,7 @@ export default function PropertyDetailsScreen() {
           <View className="flex-1">
             <Button
               title="Message"
-              onPress={() => console.log('Message agent')}
+              onPress={() => router.push('/chat/' + property.id)}
               variant="outline"
               icon={<MessageCircle size={20} color="#0F766E" />}
             />
