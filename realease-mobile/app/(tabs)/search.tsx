@@ -1,45 +1,27 @@
-// app/(tabs)/search.tsx
 import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  Platform,
-  FlatList,
-} from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Image, Platform, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Search as SearchIcon, List, Map as MapIcon, MapPin } from 'lucide-react-native';
-import { mockProperties } from '@/constants/data';
+import MapView, { Marker, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Search as SearchIcon, List, Map as MapIcon } from 'lucide-react-native';
+
+// ✅ NEW IMPORTS
+import { useProperties } from '@/hooks/useProperties'; // <--- Your new Real Data Hook
+import { MapMarker } from '@/components/MapMarker';
 import { PropertyCard } from '@/components/PropertyCard';
-
-// Conditional import for MapView (only on mobile)
-let MapView: any = null;
-let Marker: any = null;
-let Callout: any = null;
-let PROVIDER_GOOGLE: any = null;
-let MapMarker: any = null;
-
-if (Platform.OS !== 'web') {
-  const MapLibrary = require('react-native-maps');
-  MapView = MapLibrary.default;
-  Marker = MapLibrary.Marker;
-  Callout = MapLibrary.Callout;
-  PROVIDER_GOOGLE = MapLibrary.PROVIDER_GOOGLE;
-  
-  const { MapMarker: MapMarkerComponent } = require('@/components/MapMarker');
-  MapMarker = MapMarkerComponent;
-}
 
 type ViewMode = 'map' | 'list';
 
 export default function SearchScreen() {
   const router = useRouter();
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<MapView>(null);
+  
+  // ✅ USE THE HOOK
+  const { properties, loading } = useProperties();
+  
   const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const initialRegion = {
     latitude: 10.3157,
@@ -48,79 +30,54 @@ export default function SearchScreen() {
     longitudeDelta: 0.15,
   };
 
-  const formatPrice = (price: number): string => {
-    if (price >= 1000000) {
-      return `₱${(price / 1000000).toFixed(1)}M`;
-    }
-    return `₱${(price / 1000).toFixed(0)}k`;
-  };
+  // ✅ FILTER LOGIC (Applied to Real Data)
+  const filteredProperties = properties.filter(p => 
+    p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    p.location_text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const handleMarkerPress = (propertyId: string) => {
-    setSelectedPropertyId(propertyId);
-  };
+  // Helper to map DB data to UI format
+  const mapToUI = (dbProp: any) => ({
+    id: dbProp.id,
+    title: dbProp.title,
+    price: dbProp.price,
+    location: dbProp.location_text, // Map DB column to UI prop
+    imageUrl: dbProp.images?.[0] || 'https://via.placeholder.com/400', // Handle array
+    bedrooms: dbProp.bedrooms,
+    bathrooms: dbProp.bathrooms,
+    isVerified: dbProp.is_title_verified,
+    agentName: dbProp.agent?.full_name || 'Unknown Agent',
+    agentTrustScore: dbProp.agent?.trust_score || 0,
+    latitude: dbProp.latitude,
+    longitude: dbProp.longitude
+  });
 
-  const handleCalloutPress = (propertyId: string) => {
-    router.push(`/property/${propertyId}`);
-  };
-
-  const toggleViewMode = () => {
-    setViewMode(viewMode === 'map' ? 'list' : 'map');
-  };
-
-  // WEB FALLBACK - CRITICAL FOR WEB SAFETY
-  if (Platform.OS === 'web') {
+  if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-100" edges={['top']}>
-        <View className="px-6 pt-6 pb-4 bg-white border-b border-gray-200">
-          <Text className="text-2xl font-bold text-gray-900">Search</Text>
-          <Text className="text-sm text-gray-600 mt-1">
-            Find properties in Cebu
-          </Text>
-        </View>
-
-        {/* Web Fallback Message */}
-        <View className="flex-1 items-center justify-center px-6">
-          <View className="bg-teal-100 rounded-full p-6 mb-4">
-            <MapPin size={48} color="#0F766E" />
-          </View>
-          <Text className="text-2xl font-bold text-gray-900 mb-2 text-center">
-            Map View Available on Mobile
-          </Text>
-          <Text className="text-base text-gray-600 text-center mb-6">
-            The interactive map feature is optimized for mobile devices. View the list below to browse properties.
-          </Text>
-
-          {/* Show List on Web */}
-          <View className="w-full max-w-2xl">
-            <FlatList
-              data={mockProperties}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item }) => <PropertyCard property={item} />}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
-            />
-          </View>
-        </View>
-      </SafeAreaView>
+      <View className="flex-1 items-center justify-center bg-gray-100">
+        <ActivityIndicator size="large" color="#0F766E" />
+        <Text className="text-gray-500 mt-2">Loading properties...</Text>
+      </View>
     );
   }
 
-  // MOBILE VERSION - FULL MAP FUNCTIONALITY
   return (
     <SafeAreaView className="flex-1 bg-gray-100" edges={['top']}>
-      {/* Search Bar Overlay */}
+      {/* Header */}
       <View className="absolute top-12 left-4 right-4 z-10">
         <View className="flex-row items-center bg-white rounded-xl px-4 py-3 shadow-lg">
           <SearchIcon size={20} color="#9CA3AF" />
           <TextInput
-            placeholder="Search location, property..."
+            placeholder="Search location..."
             placeholderTextColor="#9CA3AF"
             className="flex-1 ml-3 text-base text-gray-900"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
         </View>
       </View>
 
-      {/* Map or List View */}
+      {/* Main View */}
       {viewMode === 'map' ? (
         <MapView
           ref={mapRef}
@@ -130,59 +87,36 @@ export default function SearchScreen() {
           showsUserLocation
           showsMyLocationButton={false}
         >
-          {mockProperties.map((property) => {
-            // CRITICAL SAFETY CHECK - Prevent crashes
-            if (!property.latitude || !property.longitude) {
-              return null;
-            }
+          {filteredProperties.map((dbProp) => {
+            // Safety Check
+            if (!dbProp.latitude || !dbProp.longitude) return null;
+            
+            // Convert to UI format
+            const uiProp = mapToUI(dbProp);
 
             return (
               <Marker
-                key={property.id}
+                key={uiProp.id}
                 coordinate={{
-                  latitude: property.latitude,
-                  longitude: property.longitude,
+                  latitude: uiProp.latitude,
+                  longitude: uiProp.longitude,
                 }}
-                onPress={() => handleMarkerPress(property.id)}
+                onPress={() => setSelectedPropertyId(uiProp.id)}
                 tracksViewChanges={false}
               >
                 <MapMarker
-                  price={property.price}
-                  isSelected={selectedPropertyId === property.id}
+                  price={uiProp.price}
+                  isSelected={selectedPropertyId === uiProp.id}
                 />
-                <Callout
-                  tooltip
-                  onPress={() => handleCalloutPress(property.id)}
-                >
-                  <TouchableOpacity
-                    activeOpacity={0.9}
-                    className="bg-white rounded-xl shadow-lg overflow-hidden"
-                    style={{ width: 240 }}
-                  >
-                    <Image
-                      source={{ uri: property.imageUrl }}
-                      className="w-full h-32"
-                      resizeMode="cover"
-                    />
+                
+                <Callout tooltip onPress={() => router.push(`/property/${uiProp.id}`)}>
+                  <TouchableOpacity className="bg-white rounded-xl shadow-lg overflow-hidden w-60">
+                    <Image source={{ uri: uiProp.imageUrl }} className="w-full h-32" resizeMode="cover" />
                     <View className="p-3">
-                      <Text className="text-lg font-bold text-teal-700 mb-1">
-                        {formatPrice(property.price)}
-                      </Text>
-                      <Text
-                        className="text-sm font-semibold text-gray-900 mb-1"
-                        numberOfLines={1}
-                      >
-                        {property.title}
-                      </Text>
-                      <Text className="text-xs text-gray-600" numberOfLines={1}>
-                        {property.location}
-                      </Text>
-                      {property.isVerified && (
-                        <View className="mt-2 bg-teal-50 rounded-full px-2 py-1 self-start">
-                          <Text className="text-xs font-semibold text-teal-700">
-                            ✓ Verified
-                          </Text>
-                        </View>
+                      <Text className="text-lg font-bold text-teal-700">₱{(uiProp.price/1000000).toFixed(1)}M</Text>
+                      <Text className="text-sm font-semibold text-gray-900" numberOfLines={1}>{uiProp.title}</Text>
+                      {uiProp.isVerified && (
+                        <Text className="text-xs text-teal-700 mt-1 font-bold">✓ Verified</Text>
                       )}
                     </View>
                   </TouchableOpacity>
@@ -193,35 +127,24 @@ export default function SearchScreen() {
         </MapView>
       ) : (
         <FlatList
-          data={mockProperties}
+          data={filteredProperties.map(mapToUI)}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            padding: 16,
-            paddingTop: 80,
-            paddingBottom: 100,
-          }}
+          contentContainerStyle={{ padding: 16, paddingTop: 80, paddingBottom: 100 }}
           renderItem={({ item }) => <PropertyCard property={item} />}
-          showsVerticalScrollIndicator={false}
         />
       )}
 
-      {/* View Toggle Button */}
+      {/* Toggle Button */}
       <View className="absolute bottom-6 left-0 right-0 items-center z-10">
         <TouchableOpacity
-          onPress={toggleViewMode}
+          onPress={() => setViewMode(viewMode === 'map' ? 'list' : 'map')}
           activeOpacity={0.8}
           className="bg-teal-700 rounded-full px-6 py-3 shadow-lg flex-row items-center"
         >
           {viewMode === 'map' ? (
-            <>
-              <List size={20} color="#FFFFFF" />
-              <Text className="text-white font-semibold ml-2">List View</Text>
-            </>
+            <><List size={20} color="white" /><Text className="text-white font-semibold ml-2">List View</Text></>
           ) : (
-            <>
-              <MapIcon size={20} color="#FFFFFF" />
-              <Text className="text-white font-semibold ml-2">Map View</Text>
-            </>
+            <><MapIcon size={20} color="white" /><Text className="text-white font-semibold ml-2">Map View</Text></>
           )}
         </TouchableOpacity>
       </View>
