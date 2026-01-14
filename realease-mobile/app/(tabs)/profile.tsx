@@ -23,7 +23,7 @@ import {
   CheckCircle,
   User,
 } from 'lucide-react-native';
-import { Button } from '@/components/Button';
+import { Button } from '../../components/Button';
 
 export default function ProfileScreen() {
   const [isVerified, setIsVerified] = useState(false);
@@ -156,7 +156,7 @@ export default function ProfileScreen() {
 
               <Button
                 title="Upload Government ID / PRC"
-                onPress={() => console.log('Start verification')}
+                onPress={() => router.push('/verification/upload')}
                 variant="secondary"
                 icon={<Upload size={20} color="#FFFFFF" />}
                 fullWidth

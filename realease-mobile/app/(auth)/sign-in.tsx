@@ -1,4 +1,3 @@
-// app/(auth)/sign-in.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -14,11 +13,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mail, Lock } from 'lucide-react-native';
+// ✅ 1. Remove signIn from here
 import { useAuth } from '@/ctx/AuthContext';
+// ✅ 2. Import Supabase directly
+import { supabase } from '@/lib/supabase';
 
 export default function SignInScreen() {
   const router = useRouter();
-  const { signIn } = useAuth();
+  // ✅ 3. Only get what you need from AuthContext (optional, or remove if unused)
+  const { session } = useAuth(); 
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,12 +32,10 @@ export default function SignInScreen() {
       Alert.alert('Error', 'Please enter your email');
       return false;
     }
-
     if (!password) {
       Alert.alert('Error', 'Please enter your password');
       return false;
     }
-
     return true;
   };
 
@@ -44,8 +45,17 @@ export default function SignInScreen() {
     setIsLoading(true);
 
     try {
-      await signIn(email, password);
-      // Navigation will be handled automatically by AuthContext
+      // ✅ 4. Use Supabase directly to sign in
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password,
+      });
+
+      if (error) throw error;
+
+      // Success! AuthContext in _layout.tsx will detect the change 
+      // and automatically redirect to /(tabs)
+      
     } catch (error: any) {
       Alert.alert(
         'Sign In Failed',
@@ -162,7 +172,7 @@ export default function SignInScreen() {
                 Don't have an account?{' '}
               </Text>
               <TouchableOpacity
-                onPress={() => router.push('/(auth)/welcome')}
+                onPress={() => router.push('/(auth)/welcome')} // Or /(auth)/role-selection
                 activeOpacity={0.7}
               >
                 <Text className="text-teal-700 text-sm font-bold">
