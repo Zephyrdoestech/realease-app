@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View, ActivityIndicator } from 'react-native';
@@ -9,29 +9,32 @@ function RootLayoutNav() {
   const { session, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const navigationState = useRootNavigationState();
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !navigationState?.key) return;
 
-    // ✅ FIX: Safer way to check current route
-    const firstSegment = segments[0]; 
+    // ✅ FIX: Safely access the first segment to satisfy TypeScript
+    const firstSegment = segments[0] as string | undefined;
+
     const inAuthGroup = firstSegment === '(auth)';
-    const inIndex = !firstSegment; // If no segments, we are at root (/)
+    const inVerification = firstSegment === 'verification';
+    const atRoot = !firstSegment; // If undefined, we are at root
 
     if (!session) {
-      // ⛔ NOT LOGGED IN
-      // If trying to access anything other than Auth or Splash, kick them out
-      if (!inAuthGroup && !inIndex) {
+      // ⛔ Not Logged In
+      // Allow access only to (auth) group or Landing Page (root)
+      if (!inAuthGroup && !atRoot) {
         router.replace('/');
       }
     } else {
-      // ✅ LOGGED IN
-      // If trying to access Auth or Splash, send them to Home
-      if (inAuthGroup || inIndex) {
+      // ✅ Logged In
+      // If at Root or inside Auth screens, redirect to Home
+      if (atRoot || inAuthGroup) {
         router.replace('/(tabs)');
       }
     }
-  }, [session, segments, isLoading]);
+  }, [session, segments, isLoading, navigationState?.key]);
 
   if (isLoading) {
     return (
@@ -43,21 +46,19 @@ function RootLayoutNav() {
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      {/* 1. Splash & Auth */}
+      {/* 1. Main Screens */}
       <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
-
-      {/* 2. Main App */}
       <Stack.Screen name="(tabs)" />
 
-      {/* 3. Detail Screens */}
+      {/* 2. Folders (Match your screenshot exactly) */}
       <Stack.Screen name="property/[id]" options={{ presentation: 'card' }} />
       <Stack.Screen name="chat/[id]" />
-      
-      {/* 4. Modals */}
       <Stack.Screen name="checkout/[id]" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="verification" options={{ presentation: 'modal' }} />
+      
+      {/* 3. Protected Modals */}
       <Stack.Screen name="seller" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="verification" options={{ presentation: 'modal' }} />
     </Stack>
   );
 }
