@@ -8,9 +8,10 @@ import { ArrowLeft, Search, Home, ChevronRight } from 'lucide-react-native';
 export default function RoleSelectionScreen() {
   const router = useRouter();
 
+  // Change this section in your role-selection.tsx
   const handleRoleSelection = (role: 'client' | 'seller') => {
     router.push({
-      pathname: '/auth/sign-up',
+      pathname: '/sign-up', // Removed the "auth/" prefix
       params: { role },
     });
   };
