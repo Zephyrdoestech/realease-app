@@ -10,7 +10,7 @@ export default function RoleSelectionScreen() {
 
   const handleRoleSelection = (role: 'client' | 'seller') => {
     router.push({
-      pathname: '/auth/sign-up',
+      pathname: '/sign-up',
       params: { role },
     });
   };
