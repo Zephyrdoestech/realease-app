@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,6 +18,7 @@ import { ArrowLeft, Mail, Lock } from 'lucide-react-native';
 import { useAuth } from '@/ctx/AuthContext';
 // ✅ 2. Import Supabase directly
 import { supabase } from '@/lib/supabase';
+
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -97,9 +99,11 @@ export default function SignInScreen() {
 
           {/* Logo */}
           <View className="items-center mb-8">
-            <View className="bg-teal-700 rounded-3xl w-20 h-20 items-center justify-center">
-              <Text className="text-white text-4xl font-bold">R</Text>
-            </View>
+            <Image 
+              source={require('../../assets/logo.png')} 
+              className="w-65 h-64 mb-0" 
+              resizeMode="contain"
+            />
           </View>
 
           {/* Form */}

@@ -1,122 +1,102 @@
-// app/auth/role-selection.tsx
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Search, Home, ChevronRight } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Briefcase, Search, ArrowRight, ChevronRight } from 'lucide-react-native';
 
 export default function RoleSelectionScreen() {
   const router = useRouter();
 
-  // Change this section in your role-selection.tsx
-  const handleRoleSelection = (role: 'client' | 'seller') => {
-    router.push({
-      pathname: '/sign-up', // Removed the "auth/" prefix
-      params: { role },
-    });
+  const selectRole = (role: 'client' | 'seller') => {
+    router.push(`/(auth)/sign-up?role=${role}`);
   };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* Header */}
-      <View className="px-6 pt-4 pb-6">
-        <TouchableOpacity
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-          className="mb-6"
-        >
-          <ArrowLeft size={24} color="#1F2937" />
+      {/* 
+         ✅ FIX: Added ScrollView 
+         contentContainerStyle gives padding at the bottom so the last card isn't stuck to the edge 
+      */}
+      <ScrollView 
+        className="flex-1"
+        contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Back Button */}
+        <TouchableOpacity onPress={() => router.back()} className="mb-6">
+          <ArrowRight size={24} color="#1F2937" style={{ transform: [{ rotate: '180deg' }]}} />
         </TouchableOpacity>
 
-        <Text className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome to RealEase
-        </Text>
-        <Text className="text-base text-gray-600">
+        <Text className="text-3xl font-bold text-gray-900 mb-2">Welcome to RealEase</Text>
+        <Text className="text-gray-500 mb-8 text-base">
           How do you plan to use RealEase?
         </Text>
-      </View>
 
-      {/* Role Options */}
-      <View className="flex-1 px-6">
-        {/* Client Option */}
-        <TouchableOpacity
-          onPress={() => handleRoleSelection('client')}
-          activeOpacity={0.7}
-          className="bg-gradient-to-br from-blue-50 to-teal-50 border-2 border-teal-700 rounded-3xl p-8 mb-6 shadow-lg"
+        {/* Option 1: Client Card */}
+        <TouchableOpacity 
+          onPress={() => selectRole('client')}
+          activeOpacity={0.9}
+          className="bg-teal-50 border-2 border-teal-600 p-6 rounded-3xl mb-6 shadow-sm"
         >
-          <View className="flex-row items-start justify-between mb-4">
-            <View className="bg-teal-700 rounded-2xl p-4">
-              <Search size={40} color="#FFFFFF" />
+          <View className="flex-row justify-between items-start mb-4">
+            <View className="bg-teal-600 p-4 rounded-2xl">
+              <Search size={32} color="white" />
             </View>
-            <View className="bg-teal-700 rounded-full p-2">
-              <ChevronRight size={24} color="#FFFFFF" />
+            <View className="bg-teal-600 rounded-full p-2">
+              <ChevronRight size={20} color="white" />
             </View>
           </View>
 
-          <Text className="text-2xl font-bold text-gray-900 mb-3">
-            I want to Buy/Rent
-          </Text>
-          
-          <Text className="text-base text-gray-700 leading-6 mb-4">
-            Find your dream home from verified properties. Browse listings, 
-            contact agents, and make secure offers.
+          <Text className="text-2xl font-bold text-gray-900 mb-2">I want to Buy/Rent</Text>
+          <Text className="text-gray-600 mb-6 leading-5">
+            Find your dream home from verified properties. Browse listings, contact agents, and make secure offers.
           </Text>
 
-          <View className="bg-white/50 rounded-xl p-4">
-            <Text className="text-sm font-semibold text-teal-900 mb-2">
-              Perfect for:
-            </Text>
-            <Text className="text-sm text-gray-700">
-              • Home buyers and renters{'\n'}
-              • First-time buyers{'\n'}
-              • Property investors
-            </Text>
+          <View className="bg-white/60 rounded-xl p-4">
+            <Text className="text-teal-800 font-bold mb-2">Perfect for:</Text>
+            <View className="space-y-1">
+              <Text className="text-gray-700">• Home buyers and renters</Text>
+              <Text className="text-gray-700">• First-time buyers</Text>
+              <Text className="text-gray-700">• Property investors</Text>
+            </View>
           </View>
         </TouchableOpacity>
 
-        {/* Seller/Agent Option */}
-        <TouchableOpacity
-          onPress={() => handleRoleSelection('seller')}
-          activeOpacity={0.7}
-          className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-600 rounded-3xl p-8 shadow-lg"
+        {/* Option 2: Seller Card */}
+        <TouchableOpacity 
+          onPress={() => selectRole('seller')}
+          activeOpacity={0.9}
+          className="bg-orange-50 border-2 border-orange-500 p-6 rounded-3xl mb-8 shadow-sm"
         >
-          <View className="flex-row items-start justify-between mb-4">
-            <View className="bg-amber-600 rounded-2xl p-4">
-              <Home size={40} color="#FFFFFF" />
+          <View className="flex-row justify-between items-start mb-4">
+            <View className="bg-orange-600 p-4 rounded-2xl">
+              <Briefcase size={32} color="white" />
             </View>
-            <View className="bg-amber-600 rounded-full p-2">
-              <ChevronRight size={24} color="#FFFFFF" />
+            <View className="bg-orange-600 rounded-full p-2">
+              <ChevronRight size={20} color="white" />
             </View>
           </View>
 
-          <Text className="text-2xl font-bold text-gray-900 mb-3">
-            I am an Agent/Seller
-          </Text>
-          
-          <Text className="text-base text-gray-700 leading-6 mb-4">
-            List your properties, connect with serious buyers, and grow your 
-            business with verified credentials.
+          <Text className="text-2xl font-bold text-gray-900 mb-2">I am an Agent/Seller</Text>
+          <Text className="text-gray-600 mb-6 leading-5">
+            List your properties, connect with serious buyers, and grow your business with verified credentials.
           </Text>
 
-          <View className="bg-white/50 rounded-xl p-4">
-            <Text className="text-sm font-semibold text-amber-900 mb-2">
-              Perfect for:
-            </Text>
-            <Text className="text-sm text-gray-700">
-              • Real estate agents{'\n'}
-              • Property owners{'\n'}
-              • Licensed brokers
-            </Text>
+          <View className="bg-white/60 rounded-xl p-4">
+            <Text className="text-orange-800 font-bold mb-2">Perfect for:</Text>
+            <View className="space-y-1">
+              <Text className="text-gray-700">• Real estate agents & brokers</Text>
+              <Text className="text-gray-700">• Property owners</Text>
+              <Text className="text-gray-700">• Developers</Text>
+            </View>
           </View>
         </TouchableOpacity>
-      </View>
 
-      {/* Footer */}
-      <View className="px-6 pb-6">
-        <Text className="text-center text-sm text-gray-600">
-          You can change this later in your profile settings
+        <Text className="text-center text-gray-400 text-xs mb-8">
+          You can change this later in your profile settings.
         </Text>
-      </View>
+
+      </ScrollView>
     </SafeAreaView>
   );
 }

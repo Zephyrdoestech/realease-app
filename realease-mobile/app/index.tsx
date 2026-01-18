@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Home, Shield, TrendingUp } from 'lucide-react-native';
@@ -7,22 +7,17 @@ import { Home, Shield, TrendingUp } from 'lucide-react-native';
 export default function LandingScreen() {
   const router = useRouter();
   
-  // NOTE: Authentication checks are now handled in _layout.tsx
-  // This screen only renders if the user is NOT logged in.
-
   return (
     <SafeAreaView className="flex-1 bg-white">
       {/* Hero Section */}
       <View className="flex-1 px-6 justify-center">
         {/* Logo */}
         <View className="items-center mb-8">
-          <View className="bg-teal-700 rounded-3xl w-32 h-32 items-center justify-center mb-6 shadow-lg">
-            <Text className="text-white text-6xl font-bold">R</Text>
-          </View>
-          
-          <Text className="text-5xl font-bold text-gray-900 mb-3">
-            RealEase
-          </Text>
+          <Image 
+            source={require('../assets/logo.png')} 
+            className="w-65 h-64 mb-0" 
+            resizeMode="contain"
+          />
           
           <Text className="text-xl text-gray-600 text-center px-8 mb-12">
             Your journey home, simplified.
@@ -91,4 +86,4 @@ export default function LandingScreen() {
       </View>
     </SafeAreaView>
   );
-}
+} 
