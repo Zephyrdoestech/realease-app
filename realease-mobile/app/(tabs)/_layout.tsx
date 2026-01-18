@@ -1,11 +1,11 @@
-// app/(tabs)/_layout.tsx
+import React from 'react';
 import { Tabs } from 'expo-router';
 import { Home, Search, FileText, User, LayoutDashboard } from 'lucide-react-native';
 import { useAuth } from '@/ctx/AuthContext';
 
 export default function TabsLayout() {
-  const { profile } = useAuth();
-  const isSeller = profile?.role === 'seller';
+  const { role } = useAuth();
+  const isSeller = role === 'seller';
 
   return (
     <Tabs
@@ -17,99 +17,66 @@ export default function TabsLayout() {
           backgroundColor: '#FFFFFF',
           borderTopWidth: 1,
           borderTopColor: '#E5E7EB',
+          height: 60,
           paddingBottom: 8,
           paddingTop: 8,
-          height: 60,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: '600',
         },
       }}
     >
-      {/* SELLER TABS */}
-      {isSeller ? (
-        <>
-          <Tabs.Screen
-            name="seller-dashboard"
-            options={{
-              title: 'Dashboard',
-              tabBarIcon: ({ color, size }) => (
-                <LayoutDashboard size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="profile"
-            options={{
-              title: 'Profile',
-              tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
-            }}
-          />
-          
-          {/* Hide these tabs for sellers */}
-          <Tabs.Screen
-            name="index"
-            options={{
-              href: null, // This hides the tab
-            }}
-          />
-          <Tabs.Screen
-            name="search"
-            options={{
-              href: null,
-            }}
-          />
-          <Tabs.Screen
-            name="transactions"
-            options={{
-              href: null,
-            }}
-          />
-        </>
-      ) : (
-        /* CLIENT TABS */
-        <>
-          <Tabs.Screen
-            name="index"
-            options={{
-              title: 'Home',
-              tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-            }}
-          />
-          <Tabs.Screen
-            name="search"
-            options={{
-              title: 'Search',
-              tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
-            }}
-          />
-          <Tabs.Screen
-            name="transactions"
-            options={{
-              title: 'Activity',
-              tabBarIcon: ({ color, size }) => (
-                <FileText size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="profile"
-            options={{
-              title: 'Profile',
-              tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
-            }}
-          />
-          
-          {/* Hide seller dashboard for clients */}
-          <Tabs.Screen
-            name="seller-dashboard"
-            options={{
-              href: null,
-            }}
-          />
-        </>
-      )}
+      {/* 1. HOME (Visible to Everyone) */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          href: '/(tabs)',
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+        }}
+      />
+
+      {/* 2. EXPLORE (Visible to Everyone) */}
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Explore',
+          href: '/(tabs)/search',
+          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+        }}
+      />
+
+      {/* 3. ACTIVITY (Visible to Everyone) */}
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          title: 'Activity',
+          href: '/(tabs)/transactions',
+          tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
+        }}
+      />
+
+      {/* 4. DASHBOARD (Hidden for Clients, Visible for Sellers) */}
+      <Tabs.Screen
+        name="seller-dashboard"
+        options={{
+          title: 'Dashboard',
+          // Only show this tab if the user is a Seller
+          href: isSeller ? '/(tabs)/seller-dashboard' : null,
+          tabBarIcon: ({ color, size }) => <LayoutDashboard size={size} color={color} />,
+        }}
+      />
+
+      {/* 5. PROFILE (Visible to Everyone) */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          href: '/(tabs)/profile',
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
