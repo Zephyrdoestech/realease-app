@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router'; // To reload when you come back
+import { useFocusEffect } from 'expo-router'; 
 import {
   Shield, Upload, FileText, Settings, HelpCircle, Heart, LogOut, AlertCircle, CheckCircle, User
 } from 'lucide-react-native';
@@ -19,9 +19,13 @@ export default function ProfileScreen() {
 
   // Fetch Real Profile Data
   const fetchProfile = async () => {
+    // 🛡️ SAFETY CHECK: If no session, stop trying to fetch
+    if (!session?.user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      if (!session?.user.id) return;
-      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -38,18 +42,38 @@ export default function ProfileScreen() {
     }
   };
 
-  // Reload when screen focuses (e.g. after uploading docs)
+  // Reload when screen focuses
   useFocusEffect(
     useCallback(() => {
       fetchProfile();
-    }, [])
+    }, [session]) // Added session as dependency
   );
 
+  // ✅ FIXED LOGOUT: Added loading state and manual redirect to prevent freezing
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) Alert.alert("Error", error.message);
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+
+      // ⚡ Try the root path first, as (auth) groups are ignored in URLs
+      router.replace('/sign-in'); 
+
+    } catch (error: any) {
+      setLoading(false);
+      
+      // If '/sign-in' failed, try the explicit auth path as a fallback
+      try {
+        router.replace('/auth/sign-in');
+      } catch (e) {
+        Alert.alert("Route Error", "Could not find the Sign In screen. Please check your folder names.");
+      }
+    }
   };
 
+  // Show loader while fetching or logging out
   if (loading && !refreshing) {
     return (
       <View className="flex-1 justify-center items-center bg-gray-50">
@@ -77,7 +101,13 @@ export default function ProfileScreen() {
       <ScrollView 
         className="flex-1" 
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchProfile(); }} />}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={() => { setRefreshing(true); fetchProfile(); }} 
+            colors={['#0F766E']} 
+          />
+        }
       >
         {/* Header */}
         <View className="px-6 pt-6 pb-4 bg-white border-b border-gray-200">
@@ -91,7 +121,7 @@ export default function ProfileScreen() {
             </View>
             <View className="ml-4 flex-1">
               <Text className="text-xl font-bold text-gray-900">{profileData?.full_name || 'User'}</Text>
-              <Text className="text-sm text-gray-600 mt-1">{session?.user.email}</Text>
+              <Text className="text-sm text-gray-600 mt-1">{session?.user?.email}</Text>
               
               {isVerified ? (
                 <View className="flex-row items-center mt-2 bg-teal-50 self-start px-2 py-1 rounded-full">
@@ -99,7 +129,7 @@ export default function ProfileScreen() {
                   <Text className="text-xs font-semibold text-teal-700 ml-1">Verified Agent</Text>
                 </View>
               ) : (
-                <Text className="text-xs text-gray-400 mt-1 uppercase font-bold">{role}</Text>
+                <Text className="text-xs text-gray-400 mt-1 uppercase font-bold tracking-widest">{role}</Text>
               )}
             </View>
           </View>
@@ -120,8 +150,8 @@ export default function ProfileScreen() {
               </View>
               <Button 
                 title="Upload Documents" 
-                onPress={() => router.push('/verification/upload')} 
-                variant="outline" // Assuming you have a secondary/outline variant style
+                onPress={() => router.push('/verification/upload' as any)} 
+                variant="outline" 
               />
             </View>
           )}
@@ -145,7 +175,7 @@ export default function ProfileScreen() {
               icon={<FileText size={20} color="#0F766E" />} 
               title="My Listings" 
               subtitle="Manage your active properties"
-              onPress={() => router.push('/seller-dashboard')}
+              onPress={() => router.push('/seller-dashboard' as any)}
             />
           )}
 
@@ -164,10 +194,17 @@ export default function ProfileScreen() {
           {/* LOGOUT */}
           <TouchableOpacity 
             onPress={handleLogout}
+            disabled={loading}
             className="flex-row items-center justify-center p-4 bg-red-50 rounded-xl mt-4 mb-10 border border-red-100"
           >
-            <LogOut size={20} color="#EF4444" />
-            <Text className="text-red-600 font-bold ml-2">Log Out</Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <>
+                <LogOut size={20} color="#EF4444" />
+                <Text className="text-red-600 font-bold ml-2">Log Out</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
