@@ -1,4 +1,3 @@
-// app/auth/sign-up.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -18,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function SignUpScreen() {
   const router = useRouter();
+  // Get role from previous screen
   const { role } = useLocalSearchParams<{ role: 'client' | 'seller' }>();
 
   const [fullName, setFullName] = useState('');
@@ -58,10 +58,9 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     if (!validateInputs()) return;
-    if (!role) {
-      Alert.alert('Error', 'Role not specified. Please go back and select your role.');
-      return;
-    }
+    
+    // Default to client if somehow undefined, but alert just in case
+    const userRole = role || 'client';
 
     setIsLoading(true);
 
@@ -79,7 +78,7 @@ export default function SignUpScreen() {
       const { error: profileError } = await supabase.from('profiles').insert({
         id: authData.user.id,
         full_name: fullName.trim(),
-        role: role,
+        role: userRole,
         is_verified: false,
         trust_score: 0,
       });
@@ -89,12 +88,13 @@ export default function SignUpScreen() {
       // Success! Navigation will be handled automatically by AuthContext
       Alert.alert(
         'Account Created!',
-        `Welcome to RealEase! You're signed up as ${role === 'client' ? 'a buyer' : 'an agent'}.`,
+        `Welcome to RealEase! You're signed up as ${userRole === 'client' ? 'a buyer' : 'an agent'}.`,
         [
           {
             text: 'Get Started',
             onPress: () => {
-              // AuthContext will automatically redirect to (tabs)
+              // AuthContext in _layout.tsx will detect the new session 
+              // and automatically redirect to /(tabs)
             },
           },
         ]
@@ -110,7 +110,7 @@ export default function SignUpScreen() {
           [
             {
               text: 'Go to Sign In',
-              onPress: () => router.push('/auth/sign-in'),
+              onPress: () => router.push('/(auth)/sign-in'), // Corrected path
             },
             { text: 'Cancel', style: 'cancel' },
           ]
@@ -124,22 +124,22 @@ export default function SignUpScreen() {
   };
 
   const getRoleBadge = () => {
-    if (!role) return null;
+    const displayRole = role || 'client';
     
     return (
       <View className={`
         flex-row items-center px-4 py-2 rounded-full mb-6
-        ${role === 'client' ? 'bg-teal-50' : 'bg-amber-50'}
+        ${displayRole === 'client' ? 'bg-teal-50' : 'bg-amber-50'}
       `}>
         <CheckCircle 
           size={16} 
-          color={role === 'client' ? '#0F766E' : '#D97706'} 
+          color={displayRole === 'client' ? '#0F766E' : '#D97706'} 
         />
         <Text className={`
           text-sm font-semibold ml-2
-          ${role === 'client' ? 'text-teal-700' : 'text-amber-700'}
+          ${displayRole === 'client' ? 'text-teal-700' : 'text-amber-700'}
         `}>
-          Creating {role === 'client' ? 'Buyer' : 'Agent/Seller'} Account
+          Creating {displayRole === 'client' ? 'Buyer' : 'Agent/Seller'} Account
         </Text>
       </View>
     );
@@ -279,7 +279,7 @@ export default function SignUpScreen() {
                 Already have an account?{' '}
               </Text>
               <TouchableOpacity
-                onPress={() => router.push('/auth/sign-in')}
+                onPress={() => router.push('/(auth)/sign-in')} // Corrected path
                 activeOpacity={0.7}
               >
                 <Text className="text-teal-700 text-sm font-bold">
