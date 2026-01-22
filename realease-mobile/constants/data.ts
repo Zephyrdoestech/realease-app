@@ -17,7 +17,7 @@ export interface Property {
 
 export const mockProperties: Property[] = [
   {
-    id: '1',
+    id: '550e8400-e29b-41d4-a716-446655440000', // Valid UUID
     title: 'Avida Towers Cebu',
     price: 4500000,
     location: 'Cebu Business Park, Cebu City',
@@ -31,7 +31,7 @@ export const mockProperties: Property[] = [
     longitude: 123.9059,
   },
   {
-    id: '2',
+    id: '6ba7b810-9dad-11d1-80b4-00c04fd430c8', // Valid UUID
     title: 'Modern House in Talisay',
     price: 8750000,
     location: 'Talisay City, Cebu',
@@ -45,7 +45,7 @@ export const mockProperties: Property[] = [
     longitude: 123.8492,
   },
   {
-    id: '3',
+    id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479', // Valid UUID
     title: 'Ayala Land Premier Condo',
     price: 12500000,
     location: 'Cebu IT Park, Cebu City',
@@ -59,7 +59,7 @@ export const mockProperties: Property[] = [
     longitude: 123.9066,
   },
   {
-    id: '4',
+    id: '123e4567-e89b-12d3-a456-426614174000', // Valid UUID
     title: 'Townhouse in Lahug',
     price: 6200000,
     location: 'Lahug, Cebu City',
@@ -73,7 +73,7 @@ export const mockProperties: Property[] = [
     longitude: 123.8987,
   },
   {
-    id: '5',
+    id: '987f6543-e21b-76d5-c432-109876543210', // Valid UUID
     title: 'Luxury Condo near SM Seaside',
     price: 15000000,
     location: 'South Road Properties, Cebu City',
