@@ -66,7 +66,7 @@ export default function ProfileScreen() {
       
       // If '/sign-in' failed, try the explicit auth path as a fallback
       try {
-        router.replace('/auth/sign-in');
+        router.replace('/sign-in');
       } catch (e) {
         Alert.alert("Route Error", "Could not find the Sign In screen. Please check your folder names.");
       }

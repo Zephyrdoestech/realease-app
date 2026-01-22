@@ -1,28 +1,19 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ScrollView,
-  Image,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, TextInput, TouchableOpacity, ScrollView, Image,
+  Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { ArrowLeft, Upload, X, MapPin, Home, Bed, Bath } from 'lucide-react-native';
+import { ArrowLeft, Upload, X, MapPin, Home, Bed, Bath, Sparkles, Wand2 } from 'lucide-react-native';
 import { useAuth } from '@/ctx/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { decode } from 'base64-arraybuffer';
+import { generateListingDescription } from '@/lib/gemini';
 
 export default function AddPropertyScreen() {
   const router = useRouter();
-  const { session } = useAuth(); // Use session for ID
+  const { session } = useAuth();
 
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
@@ -32,18 +23,27 @@ export default function AddPropertyScreen() {
   const [bathrooms, setBathrooms] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+
+  // 🪄 DEV HELPER
+  const fillExampleData = () => {
+    setTitle('Luxury Skyline Condo with Ocean View');
+    setPrice('12500000');
+    setLocation('Cebu Business Park, Cebu City');
+    setBedrooms('2');
+    setBathrooms('2');
+    setDescription('Experience luxury living at its finest. This fully furnished unit offers breathtaking views of the ocean and city skyline. Includes parking and access to gym/pool.');
+  };
 
   const pickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Please allow access to your photos');
-        return;
+        return Alert.alert('Permission Required', 'Please allow access to photos');
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ['images'], 
         allowsEditing: true,
         aspect: [16, 9],
         quality: 0.7,
@@ -53,58 +53,50 @@ export default function AddPropertyScreen() {
         setSelectedImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to pick image');
     }
   };
 
-  const uploadImageToSupabase = async (imageUri: string): Promise<string> => {
-    try {
-      if (!session?.user.id) throw new Error("No user ID");
+  // ✅ FIXED: Universal Upload Logic (No FileSystem)
+  const uploadImage = async (uri: string) => {
+    if (!session?.user.id) throw new Error("No User ID");
 
-      const timestamp = Date.now();
-      const fileName = `property-${session.user.id}-${timestamp}.jpg`;
+    const timestamp = Date.now();
+    const fileName = `property-${session.user.id}-${timestamp}.jpg`;
 
-      // ✅ FIX: Use string 'base64' instead of FileSystem.EncodingType.Base64
-      const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: 'base64',
+    // 1. Fetch file data
+    const response = await fetch(uri);
+    // 2. Convert to ArrayBuffer (Works on Mobile & Web)
+    const fileData = await response.arrayBuffer();
+    
+    // 3. Upload
+    const { error } = await supabase.storage
+      .from('property-images')
+      .upload(fileName, fileData, {
+        contentType: 'image/jpeg',
+        upsert: false,
       });
 
-      // Upload
-      const { error } = await supabase.storage
-        .from('property-images')
-        .upload(fileName, decode(base64), {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
+    if (error) throw error;
 
-      if (error) throw error;
-
-      // Get URL
-      const { data: urlData } = supabase.storage
-        .from('property-images')
-        .getPublicUrl(fileName);
-
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Upload Error:', error);
-      throw error;
-    }
+    const { data } = supabase.storage.from('property-images').getPublicUrl(fileName);
+    return data.publicUrl;
   };
 
-  const validateForm = (): boolean => {
-    if (!title.trim()) { Alert.alert('Error', 'Enter a property title'); return false; }
-    if (!price || isNaN(parseFloat(price))) { Alert.alert('Error', 'Enter a valid price'); return false; }
-    if (!location.trim()) { Alert.alert('Error', 'Enter a location'); return false; }
-    if (!bedrooms) { Alert.alert('Error', 'Enter bedrooms'); return false; }
-    if (!selectedImage) { Alert.alert('Error', 'Upload a photo'); return false; }
-    return true;
+  const handleAiGenerate = async () => {
+    if (!title || !price || !location) {
+      Alert.alert("Missing Info", "Please enter Title, Price, and Location first.");
+      return;
+    }
+    setIsAiGenerating(true);
+    const text = await generateListingDescription(title, location, price, `${bedrooms} Beds, ${bathrooms} Baths`);
+    if (text) setDescription(text);
+    setIsAiGenerating(false);
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) return;
-    if (!session?.user.id) {
-      Alert.alert('Error', 'User not authenticated');
+    if (!title || !price || !location || !selectedImage) {
+      Alert.alert('Missing Fields', 'Please fill all fields and upload an image.');
       return;
     }
 
@@ -112,111 +104,174 @@ export default function AddPropertyScreen() {
 
     try {
       // 1. Upload Image
-      const imageUrl = await uploadImageToSupabase(selectedImage!);
+      const imageUrl = await uploadImage(selectedImage);
 
-      // 2. Insert to Database
+      // 2. Insert Data
       const { error } = await supabase.from('properties').insert({
+        agent_id: session?.user.id,
         title: title.trim(),
-        price: parseFloat(price),
+        price: parseFloat(price) || 0,
         location_text: location.trim(),
-        description: description.trim() || null,
+        description: description.trim(),
         bedrooms: parseInt(bedrooms) || 0,
         bathrooms: parseInt(bathrooms) || 0,
         images: [imageUrl],
-        agent_id: session.user.id,
         status: 'active',
         is_title_verified: false,
         views_count: 0,
         favorites_count: 0,
-        latitude: 10.3157, 
-        longitude: 123.8854
-      });
+        // Default coordinates for Demo Map
+        latitude: 10.3157 + (Math.random() * 0.05 - 0.025),
+        longitude: 123.8854 + (Math.random() * 0.05 - 0.025),
+      } as any);
 
       if (error) throw error;
 
-      Alert.alert(
-        'Success!',
-        'Property listed successfully.',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      Alert.alert("Success", "Property Listed!", [{ text: "OK", onPress: () => router.back() }]);
     } catch (error: any) {
-      console.error('Error adding property:', error);
-      Alert.alert('Error', error.message || 'Failed to add property');
+      console.error(error);
+      Alert.alert("Error", error.message || "Failed to add property");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
-      >
+    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900" edges={['top']}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
+        
         {/* Header */}
-        <View className="px-6 py-4 border-b border-gray-200">
+        <View className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex-row items-center justify-between">
           <View className="flex-row items-center">
             <TouchableOpacity onPress={() => router.back()} className="mr-4">
-              <ArrowLeft size={24} color="#1F2937" />
+              <ArrowLeft size={24} className="text-gray-900 dark:text-white" />
             </TouchableOpacity>
-            <Text className="text-2xl font-bold text-gray-900">Add New Listing</Text>
+            <Text className="text-xl font-bold text-gray-900 dark:text-white">Add Listing</Text>
           </View>
+          
+          {/* 🪄 DEV BUTTON */}
+          <TouchableOpacity onPress={fillExampleData} className="bg-teal-50 dark:bg-teal-900/30 px-3 py-1.5 rounded-lg flex-row items-center">
+             <Wand2 size={14} className="text-teal-700 dark:text-teal-400 mr-1" />
+             <Text className="text-xs font-bold text-teal-700 dark:text-teal-400">Fill Demo</Text>
+          </TouchableOpacity>
         </View>
 
         <ScrollView className="flex-1 px-6 py-6" showsVerticalScrollIndicator={false}>
-            {/* Image Upload */}
-            <View className="mb-6">
-              <Text className="text-base font-semibold text-gray-900 mb-3">Property Photo</Text>
-              {selectedImage ? (
-                <View className="relative">
-                  <Image source={{ uri: selectedImage }} className="w-full h-64 rounded-2xl" resizeMode="cover" />
-                  <TouchableOpacity onPress={() => setSelectedImage(null)} className="absolute top-3 right-3 bg-black/50 rounded-full p-2">
-                    <X size={20} color="#FFFFFF" />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity onPress={pickImage} className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl h-64 items-center justify-center">
-                  <Upload size={48} color="#9CA3AF" />
-                  <Text className="text-base font-semibold text-gray-900 mt-4">Tap to Upload</Text>
+          
+          {/* Image Picker */}
+          <View className="mb-6">
+            <Text className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Property Photo</Text>
+            {selectedImage ? (
+              <View>
+                <Image source={{ uri: selectedImage }} className="w-full h-56 rounded-xl" resizeMode="cover" />
+                <TouchableOpacity 
+                  onPress={() => setSelectedImage(null)}
+                  className="absolute top-2 right-2 bg-black/50 p-2 rounded-full"
+                >
+                  <X size={20} color="white" />
                 </TouchableOpacity>
-              )}
+              </View>
+            ) : (
+              <TouchableOpacity 
+                onPress={pickImage}
+                className="h-56 bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl items-center justify-center"
+              >
+                <Upload size={32} color="#9CA3AF" />
+                <Text className="text-gray-400 mt-2">Tap to Upload</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Form Fields */}
+          <View className="space-y-4">
+            <View>
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</Text>
+              <TextInput 
+                className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                placeholder="e.g. Modern Condo" 
+                placeholderTextColor="#9CA3AF"
+                value={title} onChangeText={setTitle} 
+              />
             </View>
 
-            {/* Inputs */}
-            <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Property Title *</Text>
-              <TextInput placeholder="e.g., Modern 2BR Condo" value={title} onChangeText={setTitle} className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900" />
+            <View>
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (₱)</Text>
+              <TextInput 
+                className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                placeholder="0" 
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric" 
+                value={price} onChangeText={setPrice} 
+              />
             </View>
 
-            <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Price (₱) *</Text>
-              <TextInput placeholder="e.g., 4500000" value={price} onChangeText={setPrice} keyboardType="numeric" className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900" />
+            <View>
+              <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</Text>
+              <TextInput 
+                className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                placeholder="City, Area" 
+                placeholderTextColor="#9CA3AF"
+                value={location} onChangeText={setLocation} 
+              />
             </View>
 
-            <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Location *</Text>
-              <TextInput placeholder="e.g., Cebu IT Park" value={location} onChangeText={setLocation} className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900" />
-            </View>
-
-            <View className="flex-row gap-3 mb-4">
+            <View className="flex-row gap-4">
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-gray-700 mb-2">Bedrooms</Text>
-                <TextInput placeholder="0" value={bedrooms} onChangeText={setBedrooms} keyboardType="numeric" className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900" />
+                <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Beds</Text>
+                <TextInput 
+                  className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                  placeholder="0" keyboardType="numeric" 
+                  value={bedrooms} onChangeText={setBedrooms} 
+                />
               </View>
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-gray-700 mb-2">Bathrooms</Text>
-                <TextInput placeholder="0" value={bathrooms} onChangeText={setBathrooms} keyboardType="numeric" className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900" />
+                <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Baths</Text>
+                <TextInput 
+                  className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700"
+                  placeholder="0" keyboardType="numeric" 
+                  value={bathrooms} onChangeText={setBathrooms} 
+                />
               </View>
             </View>
 
-            <View className="mb-6">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">Description</Text>
-              <TextInput placeholder="Describe your property..." value={description} onChangeText={setDescription} multiline numberOfLines={4} textAlignVertical="top" className="bg-gray-50 border border-gray-300 rounded-xl px-4 py-3 text-base text-gray-900" />
+            <View>
+              <View className="flex-row justify-between items-center mb-1">
+                <Text className="text-sm font-medium text-gray-700 dark:text-gray-300">Description</Text>
+                {/* AI Generator Button */}
+                <TouchableOpacity 
+                  onPress={handleAiGenerate}
+                  disabled={isAiGenerating}
+                  className="flex-row items-center bg-teal-50 dark:bg-teal-900/30 px-2 py-1 rounded-md"
+                >
+                  {isAiGenerating ? (
+                    <ActivityIndicator size="small" color="#0F766E" />
+                  ) : (
+                    <>
+                      <Sparkles size={12} color="#0F766E" />
+                      <Text className="text-[10px] font-bold text-teal-700 dark:text-teal-400 ml-1">AI Write</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+              <TextInput 
+                className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 min-h-[100px]"
+                placeholder="Details..." 
+                placeholderTextColor="#9CA3AF"
+                multiline textAlignVertical="top" 
+                value={description} onChangeText={setDescription} 
+              />
             </View>
+          </View>
 
-            <TouchableOpacity onPress={handleSubmit} disabled={isLoading} className="bg-teal-700 rounded-xl py-4 items-center shadow-sm mb-10">
-              {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text className="text-white text-base font-bold">Publish Listing</Text>}
-            </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleSubmit} 
+            disabled={isLoading}
+            className="bg-teal-700 mt-8 py-4 rounded-xl items-center shadow-lg"
+          >
+            {isLoading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Publish Listing</Text>}
+          </TouchableOpacity>
+          
+          <View className="h-20" />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
