@@ -41,32 +41,17 @@ export default function SignInScreen() {
     return true;
   };
 
-  const handleSignIn = async () => {
-    if (!validateInputs()) return;
-
-    setIsLoading(true);
-
-    try {
-      // ✅ 4. Use Supabase directly to sign in
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password: password,
-      });
-
-      if (error) throw error;
-
-      // Success! AuthContext in _layout.tsx will detect the change 
-      // and automatically redirect to /(tabs)
+  // Inside signin.tsx
+    const handleSignIn = async () => {
+      console.log("Attempting login with:", email, "to URL:", process.env.EXPO_PUBLIC_SUPABASE_URL);
       
-    } catch (error: any) {
-      Alert.alert(
-        'Sign In Failed',
-        error.message || 'Invalid email or password. Please try again.'
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
+      if (error) {
+        console.error("Supabase detailed error:", error); // Look at your terminal/console for this!
+        alert(error.message);
+      }
+    };
 
   return (
     <SafeAreaView className="flex-1 bg-white">

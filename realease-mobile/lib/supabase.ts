@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 // 1. Import the generated types
 import { Database } from '../types/database.types'
 
-const supabaseUrl = 'https://ibfhlbfuctzmrzreuwnx.supabase.co'
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImliZmhsYmZ1Y3R6bXJ6cmV1d254Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5MDk3NDgsImV4cCI6MjA4MzQ4NTc0OH0.nQHIntbN0nA2dL0MT1J33ikXUYmweLfdaXIbAa-wbZo'
+const supabaseUrl = 'https://wcsidrumxgajdfckhhef.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indjc2lkcnVteGdhamRmY2toaGVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5ODk4NjcsImV4cCI6MjA4NDU2NTg2N30.8gei6utBY2DmeXpX2bZAktKT9zvgK_kUv0lpyKJjjCM'
 
 // 2. Inject the <Database> generic here
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {

@@ -1,6 +1,5 @@
-// app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
-import { Home, Search, FileText, User, LayoutDashboard } from 'lucide-react-native';
+import { Home, Search, FileText, User, LayoutDashboard, MessageSquare } from 'lucide-react-native';
 import { useAuth } from '@/ctx/AuthContext';
 
 export default function TabsLayout() {
@@ -27,89 +26,63 @@ export default function TabsLayout() {
         },
       }}
     >
-      {/* SELLER TABS */}
-      {isSeller ? (
-        <>
-          <Tabs.Screen
-            name="seller-dashboard"
-            options={{
-              title: 'Dashboard',
-              tabBarIcon: ({ color, size }) => (
-                <LayoutDashboard size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="profile"
-            options={{
-              title: 'Profile',
-              tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
-            }}
-          />
-          
-          {/* Hide these tabs for sellers */}
-          <Tabs.Screen
-            name="index"
-            options={{
-              href: null, // This hides the tab
-            }}
-          />
-          <Tabs.Screen
-            name="search"
-            options={{
-              href: null,
-            }}
-          />
-          <Tabs.Screen
-            name="transactions"
-            options={{
-              href: null,
-            }}
-          />
-        </>
-      ) : (
-        /* CLIENT TABS */
-        <>
-          <Tabs.Screen
-            name="index"
-            options={{
-              title: 'Home',
-              tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-            }}
-          />
-          <Tabs.Screen
-            name="search"
-            options={{
-              title: 'Search',
-              tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
-            }}
-          />
-          <Tabs.Screen
-            name="transactions"
-            options={{
-              title: 'Activity',
-              tabBarIcon: ({ color, size }) => (
-                <FileText size={size} color={color} />
-              ),
-            }}
-          />
-          <Tabs.Screen
-            name="profile"
-            options={{
-              title: 'Profile',
-              tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
-            }}
-          />
-          
-          {/* Hide seller dashboard for clients */}
-          <Tabs.Screen
-            name="seller-dashboard"
-            options={{
-              href: null,
-            }}
-          />
-        </>
-      )}
+      {/* 1. HOME / INDEX TAB */}
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          href: isSeller ? null : '/', // Hidden for sellers, shown for clients
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+        }}
+      />
+
+      {/* 2. SEARCH TAB */}
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          href: isSeller ? null : '/search', // Hidden for sellers, shown for clients
+          tabBarIcon: ({ color, size }) => <Search size={size} color={color} />,
+        }}
+      />
+
+      {/* 3. SELLER DASHBOARD TAB */}
+      <Tabs.Screen
+        name="seller-dashboard"
+        options={{
+          title: 'Dashboard',
+          href: isSeller ? '/seller-dashboard' : null, // Shown for sellers, hidden for clients
+          tabBarIcon: ({ color, size }) => <LayoutDashboard size={size} color={color} />,
+        }}
+      />
+
+      {/* 4. TRANSACTIONS / ACTIVITY TAB */}
+      <Tabs.Screen
+        name="transactions"
+        options={{
+          // Sellers see 'Transactions', Clients see 'Activity'
+          title: isSeller ? 'Transactions' : 'Activity', 
+          tabBarIcon: ({ color, size }) => <FileText size={size} color={color} />,
+        }}
+      />
+
+      {/* 5. CHAT TAB */}
+      <Tabs.Screen
+        name="chat"
+        options={{
+          title: 'Chat',
+          tabBarIcon: ({ color, size }) => <MessageSquare size={size} color={color} />,
+        }}
+      />
+
+      {/* 6. PROFILE TAB */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, size }) => <User size={size} color={color} />,
+        }}
+      />
     </Tabs>
   );
 }
