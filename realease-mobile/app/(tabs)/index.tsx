@@ -25,10 +25,14 @@ export default function HomeScreen() {
   // Function to open the AI Chat
   const openAIChat = () => {
     router.push({
-      // IMPORTANT: Points to app/(tabs)/chat.tsx
       pathname: '/chat', 
       params: { id: featuredProperties[0]?.id } 
     });
+  };
+
+  // Function to navigate to All Properties screen
+  const navigateToAllProperties = () => {
+    router.push('/all-properties');
   };
 
   return (
@@ -78,7 +82,12 @@ export default function HomeScreen() {
           <View className="mt-6">
             <View className="px-4 mb-4 flex-row items-center justify-between">
               <Text className="text-xl font-bold text-gray-900">Featured Properties</Text>
-              <TouchableOpacity activeOpacity={0.7}><Text className="text-sm font-semibold text-teal-700">See All</Text></TouchableOpacity>
+              <TouchableOpacity 
+                activeOpacity={0.7}
+                onPress={navigateToAllProperties}
+              >
+                <Text className="text-sm font-semibold text-teal-700">See All</Text>
+              </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
               {featuredProperties.map((property) => (
@@ -107,12 +116,12 @@ export default function HomeScreen() {
             position: 'absolute',
             bottom: 20,
             right: 20,
-            backgroundColor: '#0F766E', // Teal-700
+            backgroundColor: '#0F766E',
             width: 60,
             height: 60,
             borderRadius: 30,
             justifyContent: 'center',
-            alignItems: 'center', // Corrected from align_items
+            alignItems: 'center',
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.3,
@@ -131,8 +140,8 @@ export default function HomeScreen() {
               width: 12, 
               height: 12, 
               borderRadius: 6, 
-              borderWidth: 2, // Corrected from border_width
-              borderColor: 'white' // Corrected from border_color
+              borderWidth: 2,
+              borderColor: 'white'
             }} />
           </View>
         </TouchableOpacity>
