@@ -31,7 +31,6 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          href: isSeller ? null : '/', // Hidden for sellers, shown for clients
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />

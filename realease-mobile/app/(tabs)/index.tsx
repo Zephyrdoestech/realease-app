@@ -1,19 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TextInput,
   TouchableOpacity,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, ChevronDown, MapPin, Sparkles } from 'lucide-react-native';
+import { Search, ChevronDown, MapPin, Sparkles, MessageSquare, User } from 'lucide-react-native';
 import { PropertyCard } from '../../components/PropertyCard';
 import { FilterChip } from '../../components/FilterChip';
 import { mockProperties } from '@/constants/data';
 import { useRouter } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/ctx/AuthContext';
 
-export default function HomeScreen() {
+interface Inquiry {
+  property_id: string;
+  sender_id: string;
+  buyer_name: string;
+  property_title: string;
+  latest_message: string;
+  latest_timestamp: string;
+  message_count: number;
+}
+
+// ============= BUYER HOME SCREEN =============
+function BuyerHomeScreen() {
   const [selectedCity, setSelectedCity] = useState('Cebu');
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
   const router = useRouter();
@@ -22,7 +38,6 @@ export default function HomeScreen() {
   const featuredProperties = mockProperties.filter((p) => p.isVerified).slice(0, 3);
   const recentListings = mockProperties;
 
-  // Function to open the AI Chat
   const openAIChat = () => {
     router.push({
       pathname: '/chat', 
@@ -30,7 +45,6 @@ export default function HomeScreen() {
     });
   };
 
-  // Function to navigate to All Properties screen
   const navigateToAllProperties = () => {
     router.push('/all-properties');
   };
@@ -108,7 +122,7 @@ export default function HomeScreen() {
           </View>
         </ScrollView>
 
-        {/* --- AI CHATBOT FLOATING BUTTON --- */}
+        {/* AI CHATBOT FLOATING BUTTON */}
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={openAIChat}
@@ -131,7 +145,6 @@ export default function HomeScreen() {
         >
           <View>
             <Sparkles size={24} color="white" />
-            {/* Red notification dot */}
             <View style={{ 
               position: 'absolute', 
               top: -5, 
@@ -148,4 +161,315 @@ export default function HomeScreen() {
       </View>
     </SafeAreaView>
   );
+}
+
+// ============= SELLER HOME SCREEN =============
+function SellerHomeScreen() {
+  const router = useRouter();
+  const { session } = useAuth();
+  const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchInquiries = async () => {
+    try {
+      if (!session?.user?.id) {
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const sellerProperties = mockProperties;
+      const propertyIds = sellerProperties.map(p => p.id);
+
+      if (propertyIds.length === 0) {
+        setInquiries([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const { data: messages, error: messagesError } = await supabase
+        .from('messages')
+        .select('*')
+        .in('property_id', propertyIds)
+        .eq('sender_type', 'user')
+        .order('created_at', { ascending: false });
+
+      if (messagesError) {
+        console.error('Error fetching messages:', messagesError);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      if (!messages || messages.length === 0) {
+        setInquiries([]);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      const senderIds = [...new Set(messages.map(m => m.sender_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', senderIds);
+
+      const profilesMap = new Map(profiles?.map(p => [p.id, p.full_name]) || []);
+
+      const inquiriesMap = new Map<string, Inquiry>();
+
+      messages.forEach((msg: any) => {
+        const key = `${msg.property_id}-${msg.sender_id}`;
+        
+        if (!inquiriesMap.has(key)) {
+          const property = sellerProperties.find(p => p.id === msg.property_id);
+          
+          inquiriesMap.set(key, {
+            property_id: msg.property_id,
+            sender_id: msg.sender_id,
+            buyer_name: profilesMap.get(msg.sender_id) || 'Unknown Buyer',
+            property_title: property?.title || 'Property',
+            latest_message: msg.text,
+            latest_timestamp: msg.created_at,
+            message_count: 1,
+          });
+        } else {
+          const existing = inquiriesMap.get(key)!;
+          existing.message_count += 1;
+          if (new Date(msg.created_at) > new Date(existing.latest_timestamp)) {
+            existing.latest_message = msg.text;
+            existing.latest_timestamp = msg.created_at;
+          }
+        }
+      });
+
+      const inquiriesArray = Array.from(inquiriesMap.values())
+        .sort((a, b) => new Date(b.latest_timestamp).getTime() - new Date(a.latest_timestamp).getTime());
+      
+      setInquiries(inquiriesArray);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    fetchInquiries();
+
+    const channel = supabase
+      .channel('seller-inbox-messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `sender_type=eq.user`,
+        },
+        (payload) => {
+          console.log('New message received:', payload);
+          fetchInquiries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchInquiries();
+  };
+
+  const handleReply = (propertyId: string) => {
+    router.push(`/chat/${propertyId}`);
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const renderInquiryItem = ({ item }: { item: Inquiry }) => (
+    <TouchableOpacity
+      onPress={() => handleReply(item.property_id)}
+      activeOpacity={0.7}
+      className="bg-white rounded-xl p-4 mb-3 shadow-sm"
+      style={{
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+      }}
+    >
+      <View className="flex-row items-start justify-between mb-2">
+        <View className="flex-row items-center flex-1 mr-3">
+          <View className="bg-teal-100 p-2.5 rounded-full mr-3">
+            <User size={20} color="#0F766E" />
+          </View>
+          <View className="flex-1">
+            <Text className="text-base font-semibold text-gray-900 mb-0.5">
+              {item.buyer_name}
+            </Text>
+            <Text className="text-xs text-gray-500" numberOfLines={1}>
+              {item.property_title}
+            </Text>
+          </View>
+        </View>
+        <View className="items-end">
+          <Text className="text-xs text-gray-400 mb-1">
+            {formatTimestamp(item.latest_timestamp)}
+          </Text>
+          {item.message_count > 1 && (
+            <View className="bg-teal-700 px-2 py-0.5 rounded-full">
+              <Text className="text-white text-[10px] font-semibold">
+                {item.message_count}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+      
+      <Text className="text-sm text-gray-600 ml-11" numberOfLines={2}>
+        {item.latest_message}
+      </Text>
+      
+      <View className="flex-row items-center justify-end mt-2">
+        <MessageSquare size={14} color="#0F766E" />
+        <Text className="text-xs text-teal-700 font-semibold ml-1">Reply</Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-100">
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#0F766E" />
+          <Text className="text-gray-600 mt-4 text-sm">Loading inquiries...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-100">
+      <View className="flex-1">
+        <View className="bg-white px-5 pt-4 pb-5 border-b border-gray-200">
+          <Text className="text-2xl font-bold text-gray-900 mb-1">
+            Recent Inquiries
+          </Text>
+          <Text className="text-sm text-gray-600">
+            {inquiries.length} active conversation{inquiries.length !== 1 ? 's' : ''}
+          </Text>
+        </View>
+
+        <FlatList
+          data={inquiries}
+          keyExtractor={(item) => `${item.property_id}-${item.sender_id}`}
+          renderItem={renderInquiryItem}
+          contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+          refreshControl={
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={handleRefresh}
+              tintColor="#0F766E"
+              colors={['#0F766E']}
+            />
+          }
+          ListEmptyComponent={
+            <View className="flex-1 justify-center items-center pt-32">
+              <View className="bg-gray-200 p-6 rounded-full mb-4">
+                <MessageSquare size={48} color="#9CA3AF" />
+              </View>
+              <Text className="text-lg font-semibold text-gray-700 mb-2">
+                No inquiries yet
+              </Text>
+              <Text className="text-sm text-gray-500 text-center px-8 leading-5">
+                When buyers message you about your properties, their conversations will appear here
+              </Text>
+            </View>
+          }
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+// ============= MAIN COMPONENT WITH ROLE CHECK =============
+export default function HomeScreen() {
+  const { session } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (!session?.user?.id) {
+        setUserRole('client'); // Default to client/buyer view if not logged in
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        
+        setUserRole(profile?.role || 'client');
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+        setUserRole('client');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserRole();
+  }, [session?.user?.id]);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-100">
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#0F766E" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show appropriate screen based on role
+  if (userRole === 'seller') {
+    return <SellerHomeScreen />;
+  }
+
+  return <BuyerHomeScreen />;
 }

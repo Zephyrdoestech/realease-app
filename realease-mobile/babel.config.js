@@ -6,7 +6,7 @@ module.exports = function (api) {
       "nativewind/babel",
     ],
     plugins: [
-      // This is the CRITICAL LINE that fixes 'makeMutable' errors
+      // 🔴 THIS MUST BE AT THE VERY BOTTOM OF THE PLUGINS ARRAY
       "react-native-reanimated/plugin", 
     ],
   };

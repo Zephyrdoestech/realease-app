@@ -27,7 +27,7 @@ export default function RoleSelectionScreen() {
         contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/*UPDATED: Back Button with handleBack */}
+        {/*UPDATED: Back Button with handleBack*/}
         <TouchableOpacity onPress={handleBack} className="mb-6">
           <ArrowLeft size={24} color="#1F2937" />
         </TouchableOpacity>

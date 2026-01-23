@@ -83,7 +83,7 @@ export default function SignInScreen() {
         >
           {/* Header */}
           <View className="px-6 pt-4 pb-6">
-            {/* ✅ UPDATED ONPRESS */}
+            {/* UPDATED ONPRESS */}
             <TouchableOpacity
               onPress={handleBackNavigation}
               activeOpacity={0.7}
