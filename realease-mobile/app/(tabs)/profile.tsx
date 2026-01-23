@@ -58,7 +58,7 @@ export default function ProfileScreen() {
       
       if (error) throw error;
 
-      // ⚡ Try the root path first, as (auth) groups are ignored in URLs
+      // Try the root path first, as (auth) groups are ignored in URLs
       router.replace('/sign-in'); 
 
     } catch (error: any) {

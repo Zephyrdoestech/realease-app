@@ -57,7 +57,7 @@ export default function AddPropertyScreen() {
     }
   };
 
-  // ✅ FIXED: Universal Upload Logic (No FileSystem)
+  //FIXED: Universal Upload Logic (No FileSystem)
   const uploadImage = async (uri: string) => {
     if (!session?.user.id) throw new Error("No User ID");
 

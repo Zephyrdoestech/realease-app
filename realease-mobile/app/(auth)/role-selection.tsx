@@ -2,10 +2,19 @@ import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Briefcase, Search, ArrowRight, ChevronRight } from 'lucide-react-native';
+import { Briefcase, Search, ArrowLeft, ChevronRight } from 'lucide-react-native';
 
 export default function RoleSelectionScreen() {
   const router = useRouter();
+
+  //ADDED: Smart Back Navigation
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/'); // Fallback to landing if no history
+    }
+  };
 
   const selectRole = (role: 'client' | 'seller') => {
     router.push(`/(auth)/sign-up?role=${role}`);
@@ -13,18 +22,14 @@ export default function RoleSelectionScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      {/* 
-         ✅ FIX: Added ScrollView 
-         contentContainerStyle gives padding at the bottom so the last card isn't stuck to the edge 
-      */}
       <ScrollView 
         className="flex-1"
         contentContainerStyle={{ padding: 24, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Back Button */}
-        <TouchableOpacity onPress={() => router.back()} className="mb-6">
-          <ArrowRight size={24} color="#1F2937" style={{ transform: [{ rotate: '180deg' }]}} />
+        {/*UPDATED: Back Button with handleBack */}
+        <TouchableOpacity onPress={handleBack} className="mb-6">
+          <ArrowLeft size={24} color="#1F2937" />
         </TouchableOpacity>
 
         <Text className="text-3xl font-bold text-gray-900 mb-2">Welcome to RealEase</Text>

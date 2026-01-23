@@ -1,4 +1,3 @@
-// components/VerifiedBadge.tsx
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Shield } from 'lucide-react-native';

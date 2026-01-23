@@ -14,20 +14,26 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mail, Lock } from 'lucide-react-native';
-// ✅ 1. Remove signIn from here
 import { useAuth } from '@/ctx/AuthContext';
-// ✅ 2. Import Supabase directly
 import { supabase } from '@/lib/supabase';
-
 
 export default function SignInScreen() {
   const router = useRouter();
-  // ✅ 3. Only get what you need from AuthContext (optional, or remove if unused)
   const { session } = useAuth(); 
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // IMPROVED BACK NAVIGATION: Checks if history exists
+  const handleBackNavigation = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      // If no history, redirect to the landing page or home
+      router.replace('/'); 
+    }
+  };
 
   const validateInputs = () => {
     if (!email.trim()) {
@@ -41,17 +47,28 @@ export default function SignInScreen() {
     return true;
   };
 
-  // Inside signin.tsx
-    const handleSignIn = async () => {
-      console.log("Attempting login with:", email, "to URL:", process.env.EXPO_PUBLIC_SUPABASE_URL);
-      
+  const handleSignIn = async () => {
+    if (!validateInputs()) return;
+
+    setIsLoading(true);
+    console.log("Attempting login with:", email);
+    
+    try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        console.error("Supabase detailed error:", error); // Look at your terminal/console for this!
-        alert(error.message);
+        console.error("Supabase detailed error:", error);
+        Alert.alert('Login Error', error.message);
+      } else {
+        //Navigate to main app on success
+        router.replace('/(tabs)');
       }
-    };
+    } catch (err) {
+      Alert.alert('System Error', 'An unexpected error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -66,8 +83,9 @@ export default function SignInScreen() {
         >
           {/* Header */}
           <View className="px-6 pt-4 pb-6">
+            {/* ✅ UPDATED ONPRESS */}
             <TouchableOpacity
-              onPress={() => router.back()}
+              onPress={handleBackNavigation}
               activeOpacity={0.7}
               className="mb-6"
             >
@@ -93,11 +111,8 @@ export default function SignInScreen() {
 
           {/* Form */}
           <View className="px-6 flex-1">
-            {/* Email */}
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
-                Email
-              </Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">Email</Text>
               <View className="flex-row items-center bg-gray-50 border border-gray-300 rounded-xl px-4 py-3">
                 <Mail size={20} color="#9CA3AF" />
                 <TextInput
@@ -107,17 +122,13 @@ export default function SignInScreen() {
                   onChangeText={setEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  autoComplete="email"
                   className="flex-1 ml-3 text-base text-gray-900"
                 />
               </View>
             </View>
 
-            {/* Password */}
             <View className="mb-4">
-              <Text className="text-sm font-semibold text-gray-700 mb-2">
-                Password
-              </Text>
+              <Text className="text-sm font-semibold text-gray-700 mb-2">Password</Text>
               <View className="flex-row items-center bg-gray-50 border border-gray-300 rounded-xl px-4 py-3">
                 <Lock size={20} color="#9CA3AF" />
                 <TextInput
@@ -126,20 +137,17 @@ export default function SignInScreen() {
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry
-                  autoComplete="password"
                   className="flex-1 ml-3 text-base text-gray-900"
                 />
               </View>
             </View>
 
-            {/* Forgot Password */}
             <TouchableOpacity activeOpacity={0.7} className="mb-6">
               <Text className="text-sm font-semibold text-teal-700 text-right">
                 Forgot Password?
               </Text>
             </TouchableOpacity>
 
-            {/* Sign In Button */}
             <TouchableOpacity
               onPress={handleSignIn}
               disabled={isLoading}
@@ -149,24 +157,17 @@ export default function SignInScreen() {
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text className="text-white text-base font-bold">
-                  Sign In
-                </Text>
+                <Text className="text-white text-base font-bold">Sign In</Text>
               )}
             </TouchableOpacity>
 
-            {/* Sign Up Link */}
             <View className="flex-row items-center justify-center">
-              <Text className="text-gray-600 text-sm">
-                Don't have an account?{' '}
-              </Text>
+              <Text className="text-gray-600 text-sm">Don't have an account? </Text>
               <TouchableOpacity
-                onPress={() => router.push('/(auth)/welcome')} // Or /(auth)/role-selection
+                onPress={() => router.push('/sign-up')}
                 activeOpacity={0.7}
               >
-                <Text className="text-teal-700 text-sm font-bold">
-                  Sign Up
-                </Text>
+                <Text className="text-teal-700 text-sm font-bold">Sign Up</Text>
               </TouchableOpacity>
             </View>
           </View>

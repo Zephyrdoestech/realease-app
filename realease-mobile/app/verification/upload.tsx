@@ -3,8 +3,6 @@ import { View, Text, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-// ❌ REMOVED: expo-file-system (Deprecated)
-// ❌ REMOVED: base64-arraybuffer (Not needed with fetch)
 import { ArrowLeft, Upload, Shield, FileText } from 'lucide-react-native';
 import { useAuth } from '@/ctx/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -35,7 +33,7 @@ export default function VerificationUploadScreen() {
     }
   };
 
-  // ✅ NEW: Use fetch + arrayBuffer (Works on New Expo Versions + Web)
+  //Use fetch + arrayBuffer (Works on New Expo Versions + Web)
   const uploadFile = async (uri: string, type: 'gov' | 'prc') => {
     if (!session?.user.id) throw new Error("No user ID found");
 
@@ -61,7 +59,7 @@ export default function VerificationUploadScreen() {
   };
 
   const handleSubmit = async () => {
-    // ✅ SAFETY CHECK
+    // SAFETY CHECK
     if (!session?.user) {
       Alert.alert("Error", "You must be logged in.");
       return;

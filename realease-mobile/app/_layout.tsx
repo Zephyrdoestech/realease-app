@@ -14,21 +14,18 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading || !navigationState?.key) return;
 
-    // ✅ FIX: Safely access the first segment to satisfy TypeScript
     const firstSegment = segments[0] as string | undefined;
 
     const inAuthGroup = firstSegment === '(auth)';
     const inVerification = firstSegment === 'verification';
-    const atRoot = !firstSegment; // If undefined, we are at root
+    const atRoot = !firstSegment; 
 
     if (!session) {
-      // ⛔ Not Logged In
       // Allow access only to (auth) group or Landing Page (root)
       if (!inAuthGroup && !atRoot) {
         router.replace('/');
       }
     } else {
-      // ✅ Logged In
       // If at Root or inside Auth screens, redirect to Home
       if (atRoot || inAuthGroup) {
         router.replace('/(tabs)');
