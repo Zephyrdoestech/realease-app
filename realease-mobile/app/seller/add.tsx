@@ -24,14 +24,14 @@ export default function AddPropertyScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAiGenerating, setIsAiGenerating] = useState(false);
 
-  // 🪄 HACKATHON DEV HELPER: Populate data instantly for the demo
+  //Populate data instantly for the demo
   const fillExampleData = () => {
     setTitle('Luxurious 2BR Condo near IT Park');
     setPrice('7500000');
     setLocation('Lahug, Cebu City');
     setBedrooms('2');
     setBathrooms('2');
-    setDescription(''); // Clear this so we can show off the AI generation next
+    setDescription(''); 
   };
 
   const pickImage = async () => {
@@ -56,14 +56,14 @@ export default function AddPropertyScreen() {
     }
   };
 
-  // ✅ UNIVERSAL UPLOAD LOGIC
+  //UNIVERSAL UPLOAD LOGIC
   const uploadImage = async (uri: string) => {
     if (!session?.user.id) throw new Error("No User ID found");
 
     const timestamp = Date.now();
     const fileName = `${session.user.id}/prop_${timestamp}.jpg`;
 
-    // Fetch the file and convert to arrayBuffer (Works on Mobile + Web)
+    // Fetch the file and convert to arrayBuffer
     const response = await fetch(uri);
     const fileData = await response.arrayBuffer();
     
@@ -80,7 +80,7 @@ export default function AddPropertyScreen() {
     return data.publicUrl;
   };
 
-  // ✨ AI MAGIC: Generate Description (Optional - you can implement this later)
+  //Generate Description
   const handleAiGenerate = async () => {
     if (!title || !price || !location) {
       Alert.alert("Details Needed", "Please fill in the Title, Price, and Location first.");
@@ -89,8 +89,7 @@ export default function AddPropertyScreen() {
 
     setIsAiGenerating(true);
     try {
-      // TODO: Implement AI generation with your Gemini logic
-      // For now, just add a placeholder
+      //Implement AI generation with Gemini logic
       const specs = `${bedrooms || 0} Beds, ${bathrooms || 0} Baths`;
       const generatedText = `Beautiful ${title} located in ${location}. This property features ${specs} and is priced at ₱${price}. Perfect for families or professionals looking for a comfortable living space.`;
       
@@ -160,7 +159,7 @@ export default function AddPropertyScreen() {
             <Text className="text-xl font-bold text-gray-900">Add Property</Text>
           </View>
           
-          {/* 🪄 DEV HELPER BUTTON */}
+          {/* DEV HELPER BUTTON */}
           <TouchableOpacity 
             onPress={fillExampleData} 
             className="bg-teal-50 px-3 py-1.5 rounded-full flex-row items-center border border-teal-100"
@@ -257,7 +256,7 @@ export default function AddPropertyScreen() {
               <View className="flex-row justify-between items-center mb-2 px-1">
                 <Text className="text-sm font-bold text-gray-700">Property Description</Text>
                 
-                {/* ✨ AI MAGIC BUTTON */}
+                {/* AI MAGIC BUTTON */}
                 <TouchableOpacity 
                   onPress={handleAiGenerate}
                   disabled={isAiGenerating}

@@ -33,7 +33,7 @@ export default function VerificationUploadScreen() {
     }
   };
 
-  //Use fetch + arrayBuffer (Works on New Expo Versions + Web)
+  //Use fetch + arrayBuffer
   const uploadFile = async (uri: string, type: 'gov' | 'prc') => {
     if (!session?.user.id) throw new Error("No user ID found");
 

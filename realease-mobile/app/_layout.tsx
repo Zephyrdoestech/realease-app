@@ -48,7 +48,7 @@ function RootLayoutNav() {
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
 
-      {/* 2. Folders (Match your screenshot exactly) */}
+      {/* 2. Folders */}
       <Stack.Screen name="property/[id]" options={{ presentation: 'card' }} />
       <Stack.Screen name="chat/[id]" />
       <Stack.Screen name="checkout/[id]" options={{ presentation: 'modal' }} />
