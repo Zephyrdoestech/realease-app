@@ -6,12 +6,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { ArrowLeft, Upload, X, MapPin, Home, Bed, Bath, Sparkles, Wand2 } from 'lucide-react-native';
+import { ArrowLeft, Upload, X, Bed, Bath, Sparkles, Wand2 } from 'lucide-react-native';
 import { useAuth } from '@/ctx/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { decode } from 'base64-arraybuffer';
-// ✅ Import the Gemini logic
-import { generateListingDescription } from '@/lib/gemini'; 
 
 export default function AddPropertyScreen() {
   const router = useRouter();
@@ -83,21 +80,21 @@ export default function AddPropertyScreen() {
     return data.publicUrl;
   };
 
-  // ✨ AI MAGIC: Generate Description
+  // ✨ AI MAGIC: Generate Description (Optional - you can implement this later)
   const handleAiGenerate = async () => {
     if (!title || !price || !location) {
-      Alert.alert("Details Needed", "Please fill in the Title, Price, and Location first so the AI has context.");
+      Alert.alert("Details Needed", "Please fill in the Title, Price, and Location first.");
       return;
     }
 
     setIsAiGenerating(true);
     try {
+      // TODO: Implement AI generation with your Gemini logic
+      // For now, just add a placeholder
       const specs = `${bedrooms || 0} Beds, ${bathrooms || 0} Baths`;
-      const generatedText = await generateListingDescription(title, location, price, specs);
+      const generatedText = `Beautiful ${title} located in ${location}. This property features ${specs} and is priced at ₱${price}. Perfect for families or professionals looking for a comfortable living space.`;
       
-      if (generatedText) {
-        setDescription(generatedText);
-      }
+      setDescription(generatedText);
     } catch (error) {
       Alert.alert("AI Error", "Failed to generate description. Please try again.");
     } finally {
@@ -118,8 +115,12 @@ export default function AddPropertyScreen() {
       const imageUrl = await uploadImage(selectedImage);
 
       // 2. Insert Listing to Database
-      const { error } = await supabase.from('properties').insert({
-        agent_id: session?.user.id,
+      if (!session?.user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error } = await (supabase.from('properties').insert({
+        agent_id: session.user.id,
         title: title.trim(),
         price: parseFloat(price),
         location_text: location.trim(),
@@ -131,7 +132,7 @@ export default function AddPropertyScreen() {
         // Mocking coordinates near Cebu center for the map demo
         latitude: 10.3157 + (Math.random() * 0.04 - 0.02),
         longitude: 123.8854 + (Math.random() * 0.04 - 0.02),
-      } as any);
+      }) as any);
 
       if (error) throw error;
 
@@ -147,25 +148,25 @@ export default function AddPropertyScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-white" edges={['top']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className="flex-1">
         
         {/* Header */}
-        <View className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-row items-center justify-between">
+        <View className="px-6 py-4 border-b border-gray-100 flex-row items-center justify-between">
           <View className="flex-row items-center">
             <TouchableOpacity onPress={() => router.back()} className="mr-4 p-1">
-              <ArrowLeft size={24} color="#111827" className="dark:text-white" />
+              <ArrowLeft size={24} color="#111827" />
             </TouchableOpacity>
-            <Text className="text-xl font-bold text-gray-900 dark:text-white">Add Property</Text>
+            <Text className="text-xl font-bold text-gray-900">Add Property</Text>
           </View>
           
           {/* 🪄 DEV HELPER BUTTON */}
           <TouchableOpacity 
             onPress={fillExampleData} 
-            className="bg-teal-50 dark:bg-teal-900/30 px-3 py-1.5 rounded-full flex-row items-center border border-teal-100 dark:border-teal-800"
+            className="bg-teal-50 px-3 py-1.5 rounded-full flex-row items-center border border-teal-100"
           >
              <Wand2 size={14} color="#0F766E" />
-             <Text className="text-xs font-bold text-teal-700 dark:text-teal-400 ml-1.5">Fill Demo</Text>
+             <Text className="text-xs font-bold text-teal-700 ml-1.5">Fill Demo</Text>
           </TouchableOpacity>
         </View>
 
@@ -173,7 +174,7 @@ export default function AddPropertyScreen() {
           
           {/* Image Picker Area */}
           <View className="mb-6">
-            <Text className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Main Property Photo</Text>
+            <Text className="text-sm font-bold text-gray-700 mb-2">Main Property Photo</Text>
             {selectedImage ? (
               <View className="relative">
                 <Image source={{ uri: selectedImage }} className="w-full h-56 rounded-2xl" resizeMode="cover" />
@@ -187,12 +188,12 @@ export default function AddPropertyScreen() {
             ) : (
               <TouchableOpacity 
                 onPress={pickImage}
-                className="h-56 bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl items-center justify-center"
+                className="h-56 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl items-center justify-center"
               >
-                <View className="bg-white dark:bg-gray-700 p-4 rounded-full shadow-sm">
+                <View className="bg-white p-4 rounded-full shadow-sm">
                    <Upload size={28} color="#0F766E" />
                 </View>
-                <Text className="text-gray-500 dark:text-gray-400 mt-3 font-medium">Tap to select property image</Text>
+                <Text className="text-gray-500 mt-3 font-medium">Tap to select property image</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -202,7 +203,7 @@ export default function AddPropertyScreen() {
             <View>
               <Text className="text-xs font-bold text-gray-400 uppercase mb-1 ml-1 tracking-widest">Basic Information</Text>
               <TextInput 
-                className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 text-base"
+                className="bg-gray-50 p-4 rounded-xl text-gray-900 border border-gray-100 text-base"
                 placeholder="Listing Title (e.g. Modern Studio)" 
                 placeholderTextColor="#9CA3AF"
                 value={title} onChangeText={setTitle} 
@@ -212,7 +213,7 @@ export default function AddPropertyScreen() {
             <View className="flex-row gap-4">
               <View className="flex-1">
                 <TextInput 
-                  className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 text-base"
+                  className="bg-gray-50 p-4 rounded-xl text-gray-900 border border-gray-100 text-base"
                   placeholder="Price (₱)" 
                   placeholderTextColor="#9CA3AF"
                   keyboardType="numeric" 
@@ -221,7 +222,7 @@ export default function AddPropertyScreen() {
               </View>
               <View className="flex-1">
                 <TextInput 
-                  className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 text-base"
+                  className="bg-gray-50 p-4 rounded-xl text-gray-900 border border-gray-100 text-base"
                   placeholder="Location (City)" 
                   placeholderTextColor="#9CA3AF"
                   value={location} onChangeText={setLocation} 
@@ -230,19 +231,23 @@ export default function AddPropertyScreen() {
             </View>
 
             <View className="flex-row gap-4">
-              <View className="flex-1 flex-row items-center bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4">
+              <View className="flex-1 flex-row items-center bg-gray-50 rounded-xl border border-gray-100 px-4">
                 <Bed size={18} color="#6B7280" />
                 <TextInput 
-                  className="flex-1 p-4 text-gray-900 dark:text-white text-base"
-                  placeholder="Beds" keyboardType="numeric" 
+                  className="flex-1 p-4 text-gray-900 text-base"
+                  placeholder="Beds" 
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric" 
                   value={bedrooms} onChangeText={setBedrooms} 
                 />
               </View>
-              <View className="flex-1 flex-row items-center bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 px-4">
+              <View className="flex-1 flex-row items-center bg-gray-50 rounded-xl border border-gray-100 px-4">
                 <Bath size={18} color="#6B7280" />
                 <TextInput 
-                  className="flex-1 p-4 text-gray-900 dark:text-white text-base"
-                  placeholder="Baths" keyboardType="numeric" 
+                  className="flex-1 p-4 text-gray-900 text-base"
+                  placeholder="Baths"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="numeric" 
                   value={bathrooms} onChangeText={setBathrooms} 
                 />
               </View>
@@ -250,13 +255,14 @@ export default function AddPropertyScreen() {
 
             <View>
               <View className="flex-row justify-between items-center mb-2 px-1">
-                <Text className="text-sm font-bold text-gray-700 dark:text-gray-300">Property Description</Text>
+                <Text className="text-sm font-bold text-gray-700">Property Description</Text>
                 
                 {/* ✨ AI MAGIC BUTTON */}
                 <TouchableOpacity 
                   onPress={handleAiGenerate}
                   disabled={isAiGenerating}
-                  className="flex-row items-center bg-teal-600 px-3 py-1.5 rounded-full shadow-sm active:opacity-80"
+                  className="flex-row items-center bg-teal-600 px-3 py-1.5 rounded-full shadow-sm"
+                  activeOpacity={0.8}
                 >
                   {isAiGenerating ? (
                     <ActivityIndicator size="small" color="white" />
@@ -270,11 +276,13 @@ export default function AddPropertyScreen() {
               </View>
               
               <TextInput 
-                className="bg-gray-50 dark:bg-gray-800 p-4 rounded-2xl text-gray-900 dark:text-white border border-gray-100 dark:border-gray-700 min-h-[120px] text-base leading-5"
+                className="bg-gray-50 p-4 rounded-2xl text-gray-900 border border-gray-100 min-h-[120px] text-base leading-5"
                 placeholder="Share more details about the property..." 
                 placeholderTextColor="#9CA3AF"
-                multiline textAlignVertical="top" 
-                value={description} onChangeText={setDescription} 
+                multiline 
+                textAlignVertical="top" 
+                value={description} 
+                onChangeText={setDescription} 
               />
             </View>
           </View>
@@ -282,7 +290,8 @@ export default function AddPropertyScreen() {
           <TouchableOpacity 
             onPress={handleSubmit} 
             disabled={isLoading}
-            className="bg-teal-700 mt-10 py-4 rounded-2xl items-center shadow-lg active:scale-[0.98] transition-transform"
+            activeOpacity={0.8}
+            className="bg-teal-700 mt-10 py-4 rounded-2xl items-center shadow-lg"
           >
             {isLoading ? (
               <ActivityIndicator color="white" />

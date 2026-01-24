@@ -1,11 +1,12 @@
-// app/(tabs)/transactions.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   FlatList,
   Image,
   TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,59 +18,95 @@ import {
   ArrowRight,
 } from 'lucide-react-native';
 import { mockProperties } from '../../constants/data';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/ctx/AuthContext';
 
 interface Transaction {
   id: string;
-  propertyId: string;
-  type: 'reservation' | 'viewing' | 'deposit';
+  client_id: string;
+  agent_id: string;
+  property_id: string;
   amount: number;
-  status: 'in_escrow' | 'completed' | 'pending' | 'refunded';
-  date: string;
-  referenceNumber: string;
+  status: 'pending' | 'completed' | 'cancelled';
+  payment_method: string;
+  reference_number: string;
+  created_at: string;
 }
 
 export default function TransactionsScreen() {
   const router = useRouter();
+  const { session } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Mock transaction data
-  const transactions: Transaction[] = [
-    {
-      id: 'txn_001',
-      propertyId: '1',
-      type: 'reservation',
-      amount: 5150,
-      status: 'in_escrow',
-      date: '2026-01-09',
-      referenceNumber: 'RE-2026-1XYZ',
-    },
-    {
-      id: 'txn_002',
-      propertyId: '2',
-      type: 'viewing',
-      amount: 150,
-      status: 'completed',
-      date: '2026-01-05',
-      referenceNumber: 'RE-2026-2ABC',
-    },
-    {
-      id: 'txn_003',
-      propertyId: '3',
-      type: 'reservation',
-      amount: 5150,
-      status: 'completed',
-      date: '2025-12-28',
-      referenceNumber: 'RE-2025-3DEF',
-    },
-    {
-      id: 'txn_004',
-      propertyId: '4',
-      type: 'viewing',
-      amount: 150,
-      status: 'refunded',
-      date: '2025-12-20',
-      referenceNumber: 'RE-2025-4GHI',
-    },
-  ];
+  // Fetch user's transactions
+  const fetchTransactions = async () => {
+    try {
+      if (!session?.user?.id) {
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
+
+      // Cast to any to bypass TypeScript type checking for now
+      const { data, error } = await (supabase
+        .from('transactions')
+        .select('*')
+        .eq('client_id', session.user.id)
+        .order('created_at', { ascending: false }) as any);
+
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        setTransactions([]);
+      } else {
+        setTransactions(data || []);
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Subscribe to real-time transaction updates
+  useEffect(() => {
+    if (!session?.user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    fetchTransactions();
+
+    // Cast to any to bypass TypeScript type checking
+    const channel = supabase
+      .channel('user-transactions')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'transactions',
+          filter: `client_id=eq.${session.user.id}`,
+        } as any,
+        (payload) => {
+          console.log('Transaction update:', payload);
+          fetchTransactions();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.user?.id]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchTransactions();
+  };
 
   const formatPrice = (price: number): string => {
     return `₱${price.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
@@ -86,7 +123,7 @@ export default function TransactionsScreen() {
 
   const getStatusConfig = (status: Transaction['status']) => {
     switch (status) {
-      case 'in_escrow':
+      case 'pending':
         return {
           label: 'In Escrow',
           bgColor: 'bg-teal-50',
@@ -97,20 +134,12 @@ export default function TransactionsScreen() {
       case 'completed':
         return {
           label: 'Completed',
-          bgColor: 'bg-gray-100',
-          textColor: 'text-gray-700',
-          borderColor: 'border-gray-300',
-          icon: <CheckCircle size={14} color="#6B7280" />,
+          bgColor: 'bg-green-50',
+          textColor: 'text-green-700',
+          borderColor: 'border-green-300',
+          icon: <CheckCircle size={14} color="#059669" />,
         };
-      case 'pending':
-        return {
-          label: 'Pending',
-          bgColor: 'bg-amber-50',
-          textColor: 'text-amber-700',
-          borderColor: 'border-amber-300',
-          icon: <Clock size={14} color="#F59E0B" />,
-        };
-      case 'refunded':
+      case 'cancelled':
         return {
           label: 'Refunded',
           bgColor: 'bg-blue-50',
@@ -129,25 +158,31 @@ export default function TransactionsScreen() {
     }
   };
 
-  const getTransactionType = (type: Transaction['type']): string => {
-    switch (type) {
-      case 'reservation':
-        return 'Reservation Fee';
-      case 'viewing':
-        return 'Viewing Fee';
-      case 'deposit':
-        return 'Security Deposit';
+  const getPaymentMethodLabel = (method: string): string => {
+    switch (method) {
+      case 'gcash':
+        return 'GCash';
+      case 'paymaya':
+        return 'PayMaya';
+      case 'bank_transfer':
+        return 'Bank Transfer';
+      case 'credit_card':
+        return 'Credit Card';
       default:
         return 'Payment';
     }
   };
 
   const renderTransaction = ({ item }: { item: Transaction }) => {
-    const property = mockProperties.find((p) => p.id === item.propertyId);
+    const property = mockProperties.find((p) => p.id === item.property_id);
     const statusConfig = getStatusConfig(item.status);
 
     if (!property) {
-      return null;
+      return (
+        <View className="bg-white rounded-2xl overflow-hidden shadow-sm mb-4 mx-4 p-4">
+          <Text className="text-gray-500">Property not found</Text>
+        </View>
+      );
     }
 
     return (
@@ -155,6 +190,13 @@ export default function TransactionsScreen() {
         onPress={() => router.push(`/property/${property.id}`)}
         activeOpacity={0.7}
         className="bg-white rounded-2xl overflow-hidden shadow-sm mb-4 mx-4"
+        style={{
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 3,
+        }}
       >
         <View className="flex-row">
           {/* Property Image */}
@@ -180,9 +222,9 @@ export default function TransactionsScreen() {
               </Text>
             </View>
 
-            {/* Transaction Type */}
+            {/* Payment Method */}
             <Text className="text-base font-bold text-gray-900 mb-1">
-              {getTransactionType(item.type)}
+              {getPaymentMethodLabel(item.payment_method)}
             </Text>
 
             {/* Property Title */}
@@ -198,14 +240,14 @@ export default function TransactionsScreen() {
               <View className="flex-row items-center">
                 <Calendar size={14} color="#9CA3AF" />
                 <Text className="text-xs text-gray-500 ml-1">
-                  {formatDate(item.date)}
+                  {formatDate(item.created_at)}
                 </Text>
               </View>
             </View>
 
             {/* Reference Number */}
             <Text className="text-xs text-gray-400 mt-2">
-              Ref: {item.referenceNumber}
+              Ref: {item.reference_number}
             </Text>
           </View>
 
@@ -215,11 +257,11 @@ export default function TransactionsScreen() {
           </View>
         </View>
 
-        {/* Escrow Notice for Active Transactions */}
-        {item.status === 'in_escrow' && (
+        {/* Escrow Notice for Pending Transactions */}
+        {item.status === 'pending' && (
           <View className="bg-teal-50 px-4 py-3 border-t border-teal-100">
             <Text className="text-xs text-teal-700">
-              💡 Funds are held securely until viewing is confirmed
+              💡 Funds are held securely in escrow until transaction is confirmed
             </Text>
           </View>
         )}
@@ -249,6 +291,50 @@ export default function TransactionsScreen() {
     </View>
   );
 
+  // Calculate totals
+  const inEscrowTotal = transactions
+    .filter((t) => t.status === 'pending')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const completedTotal = transactions
+    .filter((t) => t.status === 'completed')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#0F766E" />
+          <Text className="text-gray-600 mt-4 text-sm">Loading transactions...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!session?.user) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+        <View className="flex-1 justify-center items-center px-6">
+          <View className="bg-teal-100 p-6 rounded-full mb-4">
+            <Shield size={48} color="#0F766E" />
+          </View>
+          <Text className="text-2xl font-bold text-gray-900 mb-2 text-center">
+            Sign In Required
+          </Text>
+          <Text className="text-gray-600 text-center leading-5 mb-6">
+            Please sign in to view your transaction history
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push('/sign-in')}
+            className="bg-teal-700 px-8 py-3 rounded-xl"
+          >
+            <Text className="text-white font-semibold text-base">Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
       {/* Header */}
@@ -264,21 +350,13 @@ export default function TransactionsScreen() {
         <View className="flex-1 bg-white rounded-xl p-4 shadow-sm">
           <Text className="text-xs text-gray-600 mb-1">In Escrow</Text>
           <Text className="text-2xl font-bold text-teal-700">
-            {formatPrice(
-              transactions
-                .filter((t) => t.status === 'in_escrow')
-                .reduce((sum, t) => sum + t.amount, 0)
-            )}
+            {formatPrice(inEscrowTotal)}
           </Text>
         </View>
         <View className="flex-1 bg-white rounded-xl p-4 shadow-sm">
           <Text className="text-xs text-gray-600 mb-1">Total Spent</Text>
           <Text className="text-2xl font-bold text-gray-900">
-            {formatPrice(
-              transactions
-                .filter((t) => t.status === 'completed')
-                .reduce((sum, t) => sum + t.amount, 0)
-            )}
+            {formatPrice(completedTotal)}
           </Text>
         </View>
       </View>
@@ -291,6 +369,14 @@ export default function TransactionsScreen() {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmptyState}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor="#0F766E"
+            colors={['#0F766E']}
+          />
+        }
         contentContainerStyle={{
           paddingBottom: 20,
           flexGrow: 1,
