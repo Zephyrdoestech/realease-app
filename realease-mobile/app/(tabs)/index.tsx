@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, ChevronDown, MapPin, Sparkles, MessageSquare, User } from 'lucide-react-native';
+import { Search, ChevronDown, MapPin, Sparkles, MessageSquare, User, X } from 'lucide-react-native';
 import { PropertyCard } from '../../components/PropertyCard';
 import { FilterChip } from '../../components/FilterChip';
 import { mockProperties } from '@/constants/data';
@@ -32,11 +32,22 @@ interface Inquiry {
 function BuyerHomeScreen() {
   const [selectedCity, setSelectedCity] = useState('Cebu');
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const router = useRouter();
 
   const filters = ['Near IT Park', 'Flood Free', 'Pet Friendly', 'With Parking', 'Furnished'];
+  
+  // Filter properties based on search query
+  const filteredProperties = searchQuery.trim() 
+    ? mockProperties.filter(property => 
+        property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        property.location.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : mockProperties;
+
   const featuredProperties = mockProperties.filter((p) => p.isVerified).slice(0, 3);
-  const recentListings = mockProperties;
+  const recentListings = filteredProperties;
 
   const openAIChat = () => {
     router.push({
@@ -47,6 +58,16 @@ function BuyerHomeScreen() {
 
   const navigateToAllProperties = () => {
     router.push('/all-properties');
+  };
+
+  const handleSearchChange = (text: string) => {
+    setSearchQuery(text);
+    setIsSearching(text.trim().length > 0);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setIsSearching(false);
   };
 
   return (
@@ -73,52 +94,88 @@ function BuyerHomeScreen() {
                 placeholder="Search for condo, house..."
                 placeholderTextColor="#9CA3AF"
                 className="flex-1 ml-3 text-base text-gray-900"
-                editable={false}
+                value={searchQuery}
+                onChangeText={handleSearchChange}
               />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={clearSearch} activeOpacity={0.7}>
+                  <X size={20} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
             </View>
+
+            {/* Search Results Count */}
+            {isSearching && (
+              <View className="mt-3">
+                <Text className="text-sm text-gray-600">
+                  {filteredProperties.length} {filteredProperties.length === 1 ? 'result' : 'results'} found
+                </Text>
+              </View>
+            )}
           </View>
 
-          {/* Filter Chips */}
-          <View className="py-4 bg-white border-b border-gray-200">
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
-              {filters.map((filter) => (
-                <FilterChip
-                  key={filter}
-                  label={filter}
-                  selected={selectedFilter === filter}
-                  onPress={() => setSelectedFilter(selectedFilter === filter ? null : filter)}
-                />
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Featured Section */}
-          <View className="mt-6">
-            <View className="px-4 mb-4 flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-gray-900">Featured Properties</Text>
-              <TouchableOpacity 
-                activeOpacity={0.7}
-                onPress={navigateToAllProperties}
-              >
-                <Text className="text-sm font-semibold text-teal-700">See All</Text>
-              </TouchableOpacity>
+          {/* Filter Chips - Hide when searching */}
+          {!isSearching && (
+            <View className="py-4 bg-white border-b border-gray-200">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+                {filters.map((filter) => (
+                  <FilterChip
+                    key={filter}
+                    label={filter}
+                    selected={selectedFilter === filter}
+                    onPress={() => setSelectedFilter(selectedFilter === filter ? null : filter)}
+                  />
+                ))}
+              </ScrollView>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
-              {featuredProperties.map((property) => (
-                <View key={property.id} style={{ width: 300, marginRight: 16 }}><PropertyCard property={property} /></View>
-              ))}
-            </ScrollView>
-          </View>
+          )}
 
-          {/* Recent Listings */}
+          {/* Featured Section - Hide when searching */}
+          {!isSearching && (
+            <View className="mt-6">
+              <View className="px-4 mb-4 flex-row items-center justify-between">
+                <Text className="text-xl font-bold text-gray-900">Featured Properties</Text>
+                <TouchableOpacity 
+                  activeOpacity={0.7}
+                  onPress={navigateToAllProperties}
+                >
+                  <Text className="text-sm font-semibold text-teal-700">See All</Text>
+                </TouchableOpacity>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
+                {featuredProperties.map((property) => (
+                  <View key={property.id} style={{ width: 300, marginRight: 16 }}><PropertyCard property={property} /></View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Search Results or Recent Listings */}
           <View className="mt-6 px-4 pb-10">
             <View className="mb-4 flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-gray-900">Recent Listings</Text>
+              <Text className="text-xl font-bold text-gray-900">
+                {isSearching ? 'Search Results' : 'Recent Listings'}
+              </Text>
               <Text className="text-sm text-gray-600">{recentListings.length} properties</Text>
             </View>
-            {recentListings.map((property) => (
-              <PropertyCard key={property.id} property={property} />
-            ))}
+            
+            {recentListings.length > 0 ? (
+              recentListings.map((property) => (
+                <PropertyCard key={property.id} property={property} />
+              ))
+            ) : (
+              <View className="items-center justify-center py-16">
+                <View className="bg-gray-200 p-6 rounded-full mb-4">
+                  <Search size={48} color="#9CA3AF" />
+                </View>
+                <Text className="text-lg font-semibold text-gray-700 mb-2">
+                  No properties found
+                </Text>
+                <Text className="text-sm text-gray-500 text-center px-8">
+                  Try adjusting your search or browse all properties
+                </Text>
+              </View>
+            )}
           </View>
         </ScrollView>
 
@@ -432,7 +489,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const fetchUserRole = async () => {
       if (!session?.user?.id) {
-        setUserRole('client'); // Default to client/buyer view if not logged in
+        setUserRole('client');
         setLoading(false);
         return;
       }
@@ -466,7 +523,6 @@ export default function HomeScreen() {
     );
   }
 
-  // Show appropriate screen based on role
   if (userRole === 'seller') {
     return <SellerHomeScreen />;
   }
